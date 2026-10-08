@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="TaskPulse">
+  <meta name="description" content="Mobile-first To-Do List with Audio Alarms and Reminders">
+  
+  <title>TaskPulse - Mobile To-Do & Alarm</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="theme-light">
+
+  <!-- Desktop Device Frame Wrapper (Switches cleanly between Mobile Frame & Full Screen) -->
+  <div class="app-layout" id="appLayout">
+    
+    <!-- Top toolbar for Desktop Viewers -->
+    <header class="desktop-banner" id="desktopBanner">
+      <div class="banner-brand">
+        <span class="brand-dot"></span>
+        <span class="brand-text">TaskPulse <strong>Mobile Simulator</strong></span>
+      </div>
+      <div class="banner-actions">
+        <button id="toggleDeviceModeBtn" class="pill-btn secondary" title="Toggle Mobile Mockup Frame">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="3"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+          <span id="viewModeText">Full Screen View</span>
+        </button>
+        <button id="testAlarmTriggerBtn" class="pill-btn warning" title="Trigger instant test alarm">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+          <span>Quick Alarm Test</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Mobile Device Container -->
+    <div class="mobile-device" id="mobileDevice">
+      
+      <!-- Hardware Frame Details (Speaker & Notch) -->
+      <div class="phone-notch">
+        <div class="notch-speaker"></div>
+        <div class="notch-camera"></div>
+      </div>
+
+      <!-- App Screen Content -->
+      <main class="phone-screen" id="phoneScreen">
+
+        <!-- Mobile OS Status Bar -->
+        <div class="status-bar" id="statusBar">
+          <span class="status-time" id="statusClock">12:00 PM</span>
+          <div class="status-icons">
+            <svg class="icon-wifi" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
+            <svg class="icon-signal" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="16" width="3" height="6" rx="1"></rect><rect x="7" y="12" width="3" height="10" rx="1"></rect><rect x="12" y="8" width="3" height="14" rx="1"></rect><rect x="17" y="4" width="3" height="18" rx="1"></rect></svg>
+            <div class="battery-pill">
+              <div class="battery-level"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Unified Scroll View (Allows Header, Hero Card & AI Card to smoothly scroll up) -->
+        <div class="main-scroll-view" id="mainScrollView">
+
+          <!-- Audio & Notification Permission Bar -->
+          <div class="audio-notice" id="audioNotice">
+            <div class="audio-notice-content">
+              <span class="notice-icon">🔔</span>
+              <div class="notice-text">
+                <strong>Enable Alarm Audio & Alerts</strong>
+                <span>Tap to ensure ringtones can play reliably</span>
+              </div>
+            </div>
+            <button id="enableAudioBtn" class="pill-btn primary-sm">Enable</button>
+          </div>
+
+          <!-- Main App Header (Scrolls naturally up with the page) -->
+          <header class="app-header">
+            <div class="header-top">
+              <div class="user-greeting">
+                <div class="date-row">
+                  <span class="date-badge" id="currentDateBadge">Today, Oct 8</span>
+                  <span class="offline-badge" id="offlineIndicator" style="display: none;">⚡ Offline Ready</span>
+                </div>
+                <h1 class="headline">My Schedule <span class="wave-accent">✦</span></h1>
+              </div>
+              <div class="header-controls">
+                <button id="muteToggleBtn" class="icon-btn" title="Toggle Sound Mute" aria-label="Toggle Sound">
+                  <svg id="muteIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                </button>
+                <button id="headerSettingsBtn" class="icon-btn" title="Settings & Presets" aria-label="Settings">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Live Alarm Status & Progress Banner -->
+            <div class="hero-stats-card" id="heroStatsCard">
+              <div class="stats-left">
+                <div class="next-alarm-badge" id="nextAlarmBadge">
+                  <div class="alarm-icon-wrap">
+                    <div class="pulse-ring"></div>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                  </div>
+                  <div class="alarm-text-wrap" id="nextAlarmText">
+                    <span class="no-alarm-label">No upcoming alarms</span>
+                  </div>
+                </div>
+                <div class="tasks-counter">
+                  <span class="count-num" id="pendingCount">0</span>
+                  <span class="count-label">pending tasks</span>
+                </div>
+              </div>
+              
+              <div class="progress-ring-box">
+                <svg class="progress-ring" width="68" height="68">
+                  <circle class="ring-bg" stroke="rgba(255,255,255,0.08)" stroke-width="6" fill="transparent" r="28" cx="34" cy="34"/>
+                  <circle class="ring-val" id="progressRingVal" stroke="url(#progressGrad)" stroke-width="6" stroke-linecap="round" fill="transparent" r="28" cx="34" cy="34"/>
+                  <defs>
+                    <linearGradient id="progressGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#38bdf8"/>
+                      <stop offset="100%" stop-color="#2563eb"/>
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <div class="ring-percentage" id="progressPercentage">0%</div>
+              </div>
+            </div>
+          </header>
+
+          <!-- Sticky Controls: Search & Filters (Sticks to top as user scrolls down through tasks) -->
+          <div class="sticky-controls" id="stickyControls">
+            <!-- Search Bar -->
+            <div class="search-box">
+              <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" id="searchInput" placeholder="Search tasks or alarms..." autocomplete="off">
+              <button id="clearSearchBtn" class="clear-search-btn" style="display:none;">✕</button>
+            </div>
+
+            <!-- Main Filter Tabs -->
+            <div class="filter-tabs" id="filterTabs">
+              <button class="filter-chip active" data-filter="all">All <span class="tab-count" id="countAll">0</span></button>
+              <button class="filter-chip" data-filter="alarm">⏰ With Alarm <span class="tab-count" id="countAlarm">0</span></button>
+              <button class="filter-chip" data-filter="today">Today <span class="tab-count" id="countToday">0</span></button>
+              <button class="filter-chip" data-filter="priority">🔥 High Priority <span class="tab-count" id="countPriority">0</span></button>
+              <button class="filter-chip" data-filter="done">✓ Done <span class="tab-count" id="countDone">0</span></button>
+            </div>
+
+            <!-- Category Chips -->
+            <div class="category-scroll" id="categoryScroll">
+              <button class="cat-pill active" data-cat="all">All Categories</button>
+              <button class="cat-pill" data-cat="work">💼 Work</button>
+              <button class="cat-pill" data-cat="personal">🏡 Personal</button>
+              <button class="cat-pill" data-cat="health">💧 Health</button>
+              <button class="cat-pill" data-cat="study">📚 Study</button>
+              <button class="cat-pill" data-cat="urgent">⚡ Urgent</button>
+            </div>
+          </div>
+
+        <!-- Tasks Scroll Container -->
+        <section class="tasks-container" id="tasksContainer">
+          <div class="tasks-list" id="tasksList">
+            <!-- Rendered dynamically by app.js -->
+          </div>
+
+          <!-- Empty State for Fresh User -->
+          <div class="empty-state" id="emptyState" style="display: none;">
+            <div class="empty-illustration">
+              <div class="empty-icon-glow"></div>
+              <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg>
+            </div>
+            <h3 class="empty-title">Your Private Schedule</h3>
+            <p class="empty-desc">Welcome! This is your fresh, private workspace. No tasks added yet. Tap <strong>+ New Task</strong> to set your first task with an audio alarm.</p>
+            
+            <!-- Quick 1-tap starters -->
+            <div class="quick-start-box">
+              <span class="quick-start-label">Quick Ideas to Try:</span>
+              <div class="suggestion-chips">
+                <button type="button" class="suggestion-chip" data-title="Drink Water & Hydrate 💧" data-cat="health" data-min="5">+ 💧 Drink Water (5m alarm)</button>
+                <button type="button" class="suggestion-chip" data-title="Focus Study Session 📚" data-cat="study" data-min="25">+ 📚 Study Session (25m alarm)</button>
+                <button type="button" class="suggestion-chip" data-title="Quick Work Task 💼" data-cat="work" data-min="15">+ 💼 Work Task (15m alarm)</button>
+              </div>
+            </div>
+
+            <button class="pill-btn primary" id="emptyAddBtn">+ Create New Task</button>
+          </div>
+        </section>
+
+      </div><!-- /main-scroll-view -->
+
+        <!-- Floating Add Task Button (Mobile FAB) -->
+        <div class="fab-wrapper">
+          <button class="fab-btn" id="openAddModalBtn" aria-label="Add Task with Alarm">
+            <svg class="fab-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span class="fab-text">New Task</span>
+          </button>
+        </div>
+
+        <!-- Mobile Bottom Navigation Bar -->
+        <nav class="bottom-nav">
+          <button class="nav-item active" data-tab="tasks">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            <span>Tasks</span>
+          </button>
+          <button class="nav-item" data-tab="alarms" id="bottomNavAlarms">
+            <div class="nav-badge-wrap">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+              <span class="alarm-nav-dot" id="alarmNavDot" style="display:none;"></span>
+            </div>
+            <span>Alarms</span>
+          </button>
+          <button class="nav-item nav-ai-btn" data-tab="ai" id="bottomNavAi" title="AI Task Copilot">
+            <div class="ai-nav-icon-wrap">
+              <span class="ai-nav-sparkle">✨</span>
+            </div>
+            <span>AI Copilot</span>
+          </button>
+          <button class="nav-item" data-tab="completed" id="bottomNavDone">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            <span>Done</span>
+          </button>
+          <button class="nav-item" data-tab="settings" id="bottomNavSettings">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            <span>Audio</span>
+          </button>
+        </nav>
+
+        <!-- Home Bar Indicator for Mobile Gestures -->
+        <div class="phone-home-indicator"></div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: ADD / EDIT TASK ==================== -->
+  <div class="modal-overlay" id="taskModal" aria-hidden="true">
+    <div class="modal-sheet" role="dialog" aria-modal="true">
+      <div class="sheet-handle"></div>
+      
+      <div class="modal-header">
+        <h2 id="modalTitle">New Task</h2>
+        <button class="close-modal-btn" id="closeTaskModalBtn">✕</button>
+      </div>
+
+      <form id="taskForm" class="task-form">
+        <input type="hidden" id="taskId">
+
+        <!-- Title Field -->
+        <div class="form-group">
+          <label for="taskTitleInput" class="form-label">Task Title *</label>
+          <input type="text" id="taskTitleInput" class="form-input" placeholder="e.g. Take medicine & drink water" required autofocus>
+        </div>
+
+        <!-- Description Field -->
+        <div class="form-group">
+          <label for="taskDescInput" class="form-label">Description / Notes</label>
+          <textarea id="taskDescInput" class="form-textarea" placeholder="Add helpful details or instructions..."></textarea>
+        </div>
+
+        <!-- Category & Priority Row -->
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="taskCategorySelect" class="form-label">Category</label>
+            <select id="taskCategorySelect" class="form-select">
+              <option value="work">💼 Work</option>
+              <option value="personal">🏡 Personal</option>
+              <option value="health" selected>💧 Health</option>
+              <option value="study">📚 Study</option>
+              <option value="urgent">⚡ Urgent</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="taskPrioritySelect" class="form-label">Priority</label>
+            <select id="taskPrioritySelect" class="form-select">
+              <option value="low">🟢 Low</option>
+              <option value="medium" selected>🟡 Medium</option>
+              <option value="high">🔴 High</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Alarm Section Box -->
+        <div class="alarm-config-box">
+          <div class="alarm-toggle-row">
+            <div class="alarm-toggle-info">
+              <div class="alarm-icon-badge">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+              </div>
+              <div>
+                <strong>Set Audio Alarm</strong>
+                <p>Rings alarm tone & sends notification when due</p>
+              </div>
+            </div>
+            <label class="switch-ui">
+              <input type="checkbox" id="alarmEnabledToggle" checked>
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+
+          <div class="alarm-details-panel" id="alarmDetailsPanel">
+            <!-- Date & Time Row -->
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="alarmDateInput" class="form-label">Due Date</label>
+                <input type="date" id="alarmDateInput" class="form-input">
+              </div>
+              <div class="form-group">
+                <label for="alarmTimeInput" class="form-label">Alarm Time</label>
+                <input type="time" id="alarmTimeInput" class="form-input">
+              </div>
+            </div>
+
+            <!-- Quick preset buttons for instant alarm -->
+            <div class="quick-presets">
+              <span class="presets-label">⚡ Quick Presets:</span>
+              <div class="preset-pills-row">
+                <button type="button" class="preset-btn" data-add-min="1">+1 min</button>
+                <button type="button" class="preset-btn" data-add-min="5">+5 min</button>
+                <button type="button" class="preset-btn" data-add-min="15">+15 min</button>
+                <button type="button" class="preset-btn" data-add-min="60">+1 hr</button>
+              </div>
+            </div>
+
+            <!-- Ringtone Selector & Preview Row -->
+            <div class="ringtone-select-row">
+              <div class="form-group" style="flex: 1;">
+                <label for="alarmRingtoneSelect" class="form-label">Alarm Ringtone</label>
+                <select id="alarmRingtoneSelect" class="form-select">
+                  <option value="melody">🎵 Digital Melody</option>
+                  <option value="chime">🔔 Gentle Chime</option>
+                  <option value="radar">🚨 Radar Siren</option>
+                  <option value="arcade">👾 Retro Arcade</option>
+                </select>
+              </div>
+              <button type="button" id="previewSoundBtn" class="pill-btn secondary preview-btn" title="Preview Ringtone">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                <span>Test</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Form Action Buttons -->
+        <div class="form-actions">
+          <button type="button" class="pill-btn secondary" id="cancelTaskBtn">Cancel</button>
+          <button type="submit" class="pill-btn primary" id="saveTaskBtn">Save Task</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: FULLSCREEN RINGING ALARM ==================== -->
+  <div class="ringing-overlay" id="ringingOverlay" style="display: none;">
+    <div class="ringing-glow-waves">
+      <div class="ring-wave wave-1"></div>
+      <div class="ring-wave wave-2"></div>
+      <div class="ring-wave wave-3"></div>
+    </div>
+
+    <div class="ringing-card">
+      <div class="alarm-bell-ringing">
+        <svg class="bell-shake" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path><line x1="2" y1="4" x2="6" y2="2"></line><line x1="22" y1="4" x2="18" y2="2"></line></svg>
+      </div>
+
+      <div class="ringing-status-badge">ALARM RINGING NOW</div>
+      <div class="ringing-clock" id="ringingClock">12:00 PM</div>
+
+      <h2 class="ringing-task-title" id="ringingTaskTitle">Task Title Goes Here</h2>
+      <p class="ringing-task-desc" id="ringingTaskDesc">Description preview</p>
+      
+      <div class="ringing-tags">
+        <span class="cat-pill active" id="ringingTaskCat">💧 Health</span>
+        <span class="priority-pill" id="ringingTaskPriority">🔴 High Priority</span>
+      </div>
+
+      <!-- Animated Audio Visualizer equalizer -->
+      <div class="visualizer-bars">
+        <div class="v-bar bar-1"></div>
+        <div class="v-bar bar-2"></div>
+        <div class="v-bar bar-3"></div>
+        <div class="v-bar bar-4"></div>
+        <div class="v-bar bar-5"></div>
+        <div class="v-bar bar-6"></div>
+        <div class="v-bar bar-7"></div>
+      </div>
+
+      <!-- Actions: Dismiss & Snooze options -->
+      <div class="ringing-actions">
+        <button id="dismissAlarmBtn" class="pill-btn primary-large">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+          Dismiss & Complete
+        </button>
+
+        <div class="snooze-row">
+          <button class="snooze-btn" data-snooze-min="5">💤 Snooze 5m</button>
+          <button class="snooze-btn" data-snooze-min="10">💤 Snooze 10m</button>
+          <button class="snooze-btn" data-snooze-min="15">💤 Snooze 15m</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: AUDIO SETTINGS ==================== -->
+  <div class="modal-overlay" id="settingsModal" aria-hidden="true">
+    <div class="modal-sheet" role="dialog" aria-modal="true">
+      <div class="sheet-handle"></div>
+      <div class="modal-header">
+        <h2>Alarm & Sound Settings</h2>
+        <button class="close-modal-btn" id="closeSettingsModalBtn">✕</button>
+      </div>
+
+      <div class="settings-content">
+        <!-- Master Volume -->
+        <div class="setting-item">
+          <div class="setting-label-row">
+            <span>Alarm Volume</span>
+            <span id="volumePercentText">85%</span>
+          </div>
+          <input type="range" id="volumeSlider" min="0" max="100" value="85" class="volume-slider">
+        </div>
+
+        <!-- Default Ringtone -->
+        <div class="setting-item">
+          <label class="form-label">Default Alarm Ringtone</label>
+          <div class="ringtone-select-row">
+            <select id="defaultRingtoneSelect" class="form-select" style="flex: 1;">
+              <option value="melody">🎵 Digital Melody</option>
+              <option value="chime">🔔 Gentle Chime</option>
+              <option value="radar">🚨 Radar Siren</option>
+              <option value="arcade">👾 Retro Arcade</option>
+            </select>
+            <button id="testSettingsSoundBtn" class="pill-btn secondary preview-btn">Test</button>
+          </div>
+        </div>
+
+        <!-- Notification Permission -->
+        <div class="setting-item">
+          <div class="setting-label-row">
+            <div>
+              <strong>Browser Notification</strong>
+              <p class="setting-subtext" id="notifStatusText">Permission: Default</p>
+            </div>
+            <button id="reqNotifBtn" class="pill-btn primary-sm">Request</button>
+          </div>
+        </div>
+
+        <!-- Clear All Data / Fresh Start -->
+        <div class="setting-item">
+          <div class="setting-label-row">
+            <div>
+              <strong>Start Fresh / Clear Board</strong>
+              <p class="setting-subtext">Clear all tasks & start completely fresh</p>
+            </div>
+            <button id="clearAllTasksBtn" class="pill-btn warning">Start Fresh</button>
+          </div>
+        </div>
+
+        <!-- Sample Tasks Restorer -->
+        <div class="setting-item">
+          <div class="setting-label-row">
+            <div>
+              <strong>Demo Alarms (Optional)</strong>
+              <p class="setting-subtext">Quickly load sample alarms for testing</p>
+            </div>
+            <button id="restoreSamplesBtn" class="pill-btn secondary">Load Samples</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: AI GENERATION COPILOT ==================== -->
+  <div class="modal-overlay" id="aiModal" aria-hidden="true">
+    <div class="modal-sheet ai-modal-sheet" role="dialog" aria-modal="true">
+      <div class="sheet-handle"></div>
+      
+      <!-- Exact Image 2 AI Copilot Card -->
+      <div class="ai-assistant-card ai-popup-card" id="aiAssistantCard">
+        <div class="ai-card-glow"></div>
+        
+        <div class="ai-header-row">
+          <div class="ai-title-wrap">
+            <span class="ai-sparkle-badge">✨ AI COPILOT</span>
+            <span class="ai-tagline">Natural Language Alarm Generator</span>
+          </div>
+          <div class="ai-header-actions">
+            <button type="button" id="aiOptimizeBtn" class="ai-optimize-btn" title="AI automatically organizes your tasks by priority & alarm time">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"></path></svg>
+              <span>AI Optimize</span>
+            </button>
+            <button type="button" class="close-modal-btn ai-close-btn" id="closeAiModalBtn" aria-label="Close">✕</button>
+          </div>
+        </div>
+        
+        <div class="ai-input-wrap">
+          <input type="text" id="aiPromptInput" class="ai-prompt-input" placeholder="e.g. 'Workout in 15 mins with radar alarm' or 'Team sync tomorrow 10am'..." autocomplete="off">
+          <button type="button" id="aiGenerateBtn" class="ai-generate-btn" title="Generate task with alarm">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+          </button>
+        </div>
+
+        <!-- Quick AI Prompt Chips -->
+        <div class="ai-quick-tags">
+          <button type="button" class="ai-tag-chip" data-ai="Drink 500ml water in 10 mins">💧 Water in 10m</button>
+          <button type="button" class="ai-tag-chip" data-ai="Urgent code review in 25 mins with alarm">⚡ Urgent Review (25m)</button>
+          <button type="button" class="ai-tag-chip" data-ai="Study focus session in 45 mins with gentle chime">📚 Study Session (45m)</button>
+          <button type="button" class="ai-tag-chip" data-ai="Standup meeting tomorrow 10am">💼 Standup 10am</button>
+          <button type="button" class="ai-tag-chip" data-ai="Evening stretch and meditation at 8pm">🧘 Meditation at 8pm</button>
+        </div>
+
+        <!-- AI Thinking Animation State -->
+        <div class="ai-thinking-state" id="aiThinkingState" style="display: none;">
+          <div class="ai-glowing-orb">
+            <div class="ai-orb-core"></div>
+            <div class="ai-orb-ring ring-a"></div>
+            <div class="ai-orb-ring ring-b"></div>
+          </div>
+          <div class="ai-thinking-text">
+            <h4 id="aiThinkingStep">AI Analyzing natural language...</h4>
+            <p id="aiThinkingSubtext">Auto-detecting optimal alarm timing & tone</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Confetti Canvas for Celebratory Task Completions -->
+  <canvas id="confettiCanvas" class="confetti-canvas"></canvas>
+
+  <!-- JavaScript Modules -->
+  <script src="audio.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
