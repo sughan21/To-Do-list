@@ -398,6 +398,21 @@
                 </select>
               </div>
             </div>
+
+            <!-- Device System Clock Alarm Option -->
+            <div class="device-clock-sync-row" id="deviceClockSyncRow">
+              <div class="sync-info">
+                <span class="sync-icon">📱</span>
+                <div class="sync-text">
+                  <strong>Sync with Phone Clock Alarm</strong>
+                  <p>Guaranteed to ring even if all recent apps are closed</p>
+                </div>
+              </div>
+              <label class="switch-ui switch-ui-sm">
+                <input type="checkbox" id="syncDeviceAlarmToggle" checked>
+                <span class="switch-slider"></span>
+              </label>
+            </div>
           </div>
         </div>
 
@@ -528,6 +543,17 @@
               <p class="setting-subtext" id="notifStatusText">Permission: Default</p>
             </div>
             <button id="reqNotifBtn" class="pill-btn primary-sm">Request</button>
+          </div>
+        </div>
+
+        <!-- Android Background Alarm Tips -->
+        <div class="setting-item">
+          <div class="setting-label-row">
+            <div>
+              <strong>Keep Alarms Active When Closed</strong>
+              <p class="setting-subtext">How to prevent Recent Apps from stopping alarms</p>
+            </div>
+            <button id="showBgTipsBtn" type="button" class="pill-btn secondary" style="width: auto; min-width: 70px; padding: 0 10px; height: 32px; font-size: 11.5px;">Tips 💡</button>
           </div>
         </div>
 

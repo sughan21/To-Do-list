@@ -1321,6 +1321,13 @@
       reqNotifBtn.addEventListener('click', requestNotificationPermission);
     }
 
+    const showBgTipsBtn = document.getElementById('showBgTipsBtn');
+    if (showBgTipsBtn) {
+      showBgTipsBtn.addEventListener('click', () => {
+        alert("📱 HOW TO KEEP ALARMS RINGING WHEN CLOSED:\n\n1. Lock in Recent Apps: In your phone's Recent Apps screen, tap the TaskPulse app icon and tap 'Lock / Keep Open' (🔒). Then clearing recents will never close it!\n\n2. Battery Optimization: Go to Phone Settings > Apps > Chrome/TaskPulse > Battery > choose 'Unrestricted'.\n\n3. Phone Clock Sync: Keep 'Sync with Phone Clock Alarm' enabled when creating tasks to set an OS alarm in your phone's Clock app!");
+      });
+    }
+
     // Start Fresh / Clear Board
     if (clearAllTasksBtn) {
       clearAllTasksBtn.addEventListener('click', () => {
@@ -1572,6 +1579,8 @@
     alarmTimeInput.value = formatLocalTime(targetDate);
     alarmRingtoneSelect.value = settings.defaultRingtone || 'melody';
     if (taskRingtoneDropdown) taskRingtoneDropdown.setValue(alarmRingtoneSelect.value);
+    const syncToggle = document.getElementById('syncDeviceAlarmToggle');
+    if (syncToggle) syncToggle.checked = true;
     updateAlarmTime12Badge();
 
     taskModal.classList.add('open');
@@ -1599,6 +1608,8 @@
     alarmTimeInput.value = task.alarmTime || formatLocalTime(new Date());
     alarmRingtoneSelect.value = task.alarmRingtone || settings.defaultRingtone || 'melody';
     if (taskRingtoneDropdown) taskRingtoneDropdown.setValue(alarmRingtoneSelect.value);
+    const syncToggleEdit = document.getElementById('syncDeviceAlarmToggle');
+    if (syncToggleEdit) syncToggleEdit.checked = true;
     updateAlarmTime12Badge();
 
     taskModal.classList.add('open');
@@ -1673,6 +1684,12 @@
       showToast('✓ Task & alarm created');
     }
 
+    // Sync with Phone native Clock app (rings even if app is swiped away from Recent Apps)
+    const syncDeviceToggle = document.getElementById('syncDeviceAlarmToggle');
+    if (alarmEnabled && alarmTime && syncDeviceToggle && syncDeviceToggle.checked) {
+      triggerDeviceClockAlarm(title, alarmTime);
+    }
+
     if (alarmEnabled && ('Notification' in window) && Notification.permission === 'default') {
       requestNotificationPermission();
     }
@@ -1682,6 +1699,22 @@
     render();
 
     if (window.soundEngine) window.soundEngine.playTapSound();
+  }
+
+  function triggerDeviceClockAlarm(taskTitle, timeStr) {
+    if (!timeStr) return;
+    const [h, m] = timeStr.split(':').map(Number);
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    if (isAndroid) {
+      const intentUrl = `intent://#Intent;action=android.intent.action.SET_ALARM;S.android.intent.extra.alarm.MESSAGE=${encodeURIComponent(taskTitle)};i.android.intent.extra.alarm.HOUR=${h};i.android.intent.extra.alarm.MINUTES=${m};b.android.intent.extra.alarm.SKIP_UI=true;end`;
+      setTimeout(() => {
+        try {
+          window.location.href = intentUrl;
+        } catch (e) {
+          console.warn('Device clock intent note:', e);
+        }
+      }, 350);
+    }
   }
 
   function deleteTask(id) {
