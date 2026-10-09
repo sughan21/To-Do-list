@@ -1,4 +1,4 @@
-/* ==========================================================================
+﻿/* ==========================================================================
    TaskPulse - Mobile-First To-Do & Alarm Design System
    Rich Glassmorphism, Dark Neon Accents, Mobile App Chassis & Micro-Animations
    ========================================================================== */
@@ -71,6 +71,12 @@ html, body {
 
 body.modal-open {
   overflow: hidden !important;
+  touch-action: none;
+}
+
+input, textarea, select {
+  user-select: text !important;
+  -webkit-user-select: text !important;
 }
 
 /* Background Atmosphere - Soft Blue Lighting on Clean White */
@@ -3009,11 +3015,12 @@ input[type="time"].form-input {
 
 /* ==========================================================================
    ADVANCED RESPONSIVENESS (MOBILE, TABLET, DESKTOP)
-   Pixel-Perfect Alignment, iOS Safari Zoom-Proof Inputs, Native Bottom Sheets
+   Pixel-Perfect Touch Targets, iOS Safari Zoom-Proof Inputs, Native Bottom Sheets,
+   Edge-to-Edge Touch Scrolling, Safe-Area Awareness & Landscape Adaptation
    ========================================================================== */
 
-/* Tablet & Medium Screen Breakpoint (601px - 960px) */
-@media (min-width: 601px) and (max-width: 960px) {
+/* ==================== TABLET & LARGE FOLDABLE (769px - 1024px) ==================== */
+@media (min-width: 769px) and (max-width: 1024px) {
   .app-layout {
     padding: 20px 16px 88px 16px;
   }
@@ -3022,28 +3029,34 @@ input[type="time"].form-input {
     margin: 0 auto;
   }
   .bottom-nav {
-    min-width: 420px;
-    max-width: 540px;
+    min-width: 440px;
+    max-width: 560px;
   }
 }
 
-/* ==================== CORE MOBILE VIEWPORT (<= 640px) ==================== */
-@media (max-width: 640px) {
-  /* Prevent horizontal wobble & ensure full height */
+/* ==================== CORE MOBILE VIEWPORT (<= 768px) ==================== */
+/* Covers all modern smartphones in portrait, small tablets & foldable screens */
+@media (max-width: 768px) {
+  /* Prevent horizontal drift & ensure full dynamic height */
   html, body {
     width: 100%;
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
     overflow-x: hidden;
     overscroll-behavior-y: none;
     -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  /* Full Bleed Mobile Application Canvas (Native App Experience) */
+  /* Full Bleed Mobile Application Canvas (Native App Feel) */
   .app-layout {
-    padding: 0 0 calc(78px + env(safe-area-inset-bottom, 12px)) 0 !important;
+    padding: 0 0 calc(max(10px, env(safe-area-inset-bottom, 10px)) + 115px) 0 !important;
     width: 100% !important;
+    max-width: 100% !important;
     min-height: 100dvh !important;
     background: #ffffff !important;
     align-items: stretch !important;
+    margin: 0 !important;
   }
 
   .mobile-device {
@@ -3059,6 +3072,12 @@ input[type="time"].form-input {
 
   .phone-screen {
     width: 100%;
+    flex: 1;
+  }
+
+  .main-scroll-view {
+    width: 100%;
+    padding-bottom: 0;
   }
 
   /* Audio Permission Notice */
@@ -3067,23 +3086,38 @@ input[type="time"].form-input {
     padding: 10px 12px;
     border-radius: 14px;
     gap: 8px;
+    background: linear-gradient(135deg, rgba(30, 58, 138, 0.08), rgba(2, 132, 199, 0.06));
+    border: 1px solid rgba(30, 58, 138, 0.2);
+  }
+  .audio-notice-content {
+    min-width: 0;
+    flex: 1;
+    gap: 8px;
+  }
+  .notice-text {
+    min-width: 0;
   }
   .notice-text strong {
     font-size: 11.5px;
+    line-height: 1.3;
+    display: block;
   }
   .notice-text span {
     font-size: 10.5px;
+    line-height: 1.25;
+    display: block;
   }
   #enableAudioBtn {
     flex-shrink: 0;
     padding: 6px 12px;
     font-size: 11px;
     height: 32px;
+    border-radius: 9999px;
   }
 
   /* App Header & Top Alignment */
   .app-header {
-    padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 10px 16px;
+    padding: calc(max(12px, env(safe-area-inset-top, 12px))) 16px 10px 16px;
     gap: 12px;
   }
 
@@ -3102,26 +3136,12 @@ input[type="time"].form-input {
     width: 100%;
   }
 
-  .header-utility-group {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-shrink: 0;
-  }
-
-  .header-main-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    width: 100%;
-  }
-
   .date-row {
     margin-bottom: 0;
     gap: 6px;
     display: flex;
     align-items: center;
+    min-width: 0;
   }
   .date-badge {
     font-size: 11px;
@@ -3132,6 +3152,48 @@ input[type="time"].form-input {
     padding: 1px 6px;
   }
 
+  .header-utility-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  /* Compact Bell Pill for Test Alarm on Mobile */
+  #testAlarmTriggerBtn {
+    height: 34px;
+    width: 34px;
+    min-width: 34px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+  }
+  #testAlarmTriggerBtn span {
+    display: none !important;
+  }
+  #testAlarmTriggerBtn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .header-utility-group .icon-btn {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    min-height: 34px;
+    border-radius: 50%;
+  }
+
+  .header-main-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+  }
+
   .headline {
     font-size: clamp(20px, 5.5vw, 24px);
     line-height: 1.25;
@@ -3139,30 +3201,17 @@ input[type="time"].form-input {
     overflow: hidden;
     text-overflow: ellipsis;
     margin: 0;
+    font-weight: 800;
   }
 
   .header-add-btn {
     height: 36px;
-    padding: 0 12px;
+    padding: 0 14px;
     font-size: 12.5px;
     font-weight: 700;
     gap: 5px;
     flex-shrink: 0;
-  }
-
-  #testAlarmTriggerBtn {
-    height: 32px;
-    padding: 0 9px;
-    font-size: 11.5px;
-    font-weight: 700;
-    gap: 4px;
-  }
-
-  .header-utility-group .icon-btn {
-    width: 32px;
-    height: 32px;
-    min-width: 32px;
-    min-height: 32px;
+    border-radius: 9999px;
   }
 
   /* Hero Stats Card - Sleek, Perfectly Rounded on Mobile */
@@ -3266,27 +3315,29 @@ input[type="time"].form-input {
     margin: 0;
   }
 
-  /* Sticky Controls Bar (Search + Horizontal Scrollable Tabs) */
+  /* Sticky Controls Bar (Search + Edge-to-Edge Scrollable Tabs) */
   .sticky-controls {
     position: sticky;
     top: 0;
     z-index: 45;
-    padding: 10px 16px;
-    background: rgba(255, 255, 255, 0.95);
+    padding: 8px 16px 10px 16px;
+    background: rgba(255, 255, 255, 0.96);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid #e2e8f0;
-    gap: 10px;
+    gap: 8px;
+    display: flex;
+    flex-direction: column;
   }
 
   .search-box {
     margin-top: 0;
-    height: 42px;
+    height: 40px;
   }
 
   /* 16px font-size prevents iOS Safari from automatically zooming into inputs! */
   .search-box input {
-    height: 42px;
+    height: 40px;
     font-size: 16px !important;
     padding: 0 36px 0 38px;
     border-radius: 9999px;
@@ -3303,16 +3354,16 @@ input[type="time"].form-input {
     font-size: 13px;
   }
 
-  /* Clean Left-Gapped Scrolling for Filter Chips & Category Pills on Mobile */
+  /* Edge-to-Edge Fluid Touch Scrolling for Filter Chips & Category Pills */
   .filter-tabs,
   .category-scroll {
     display: flex;
     align-items: center;
     gap: 8px;
     overflow-x: auto;
-    overflow-y: visible;
-    padding: 4px 0 6px 0;
-    margin: 0;
+    overflow-y: hidden;
+    margin: 0 -16px;
+    padding: 2px 16px 4px 16px;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
     scroll-snap-type: x proximity;
@@ -3325,15 +3376,15 @@ input[type="time"].form-input {
   .category-scroll::after {
     content: '';
     flex-shrink: 0;
-    width: 14px;
+    width: 8px;
   }
 
   .filter-chip,
   .cat-pill {
     flex-shrink: 0;
-    height: 36px;
-    min-height: 36px;
-    padding: 0 14px;
+    height: 34px;
+    min-height: 34px;
+    padding: 0 13px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -3389,7 +3440,7 @@ input[type="time"].form-input {
 
   /* Tasks Container & Task Cards */
   .tasks-container {
-    padding: 12px 16px calc(100px + env(safe-area-inset-bottom, 12px)) 16px !important;
+    padding: 12px 16px 0 16px !important;
   }
 
   .tasks-list {
@@ -3398,9 +3449,10 @@ input[type="time"].form-input {
 
   .task-card {
     padding: 13px 14px;
-    border-radius: 16px;
+    border-radius: 18px;
     gap: 9px;
     box-shadow: 0 2px 8px rgba(10, 22, 51, 0.04);
+    border: 1px solid #e2e8f0;
   }
 
   .task-main-row {
@@ -3411,12 +3463,18 @@ input[type="time"].form-input {
   }
 
   .task-check-circle {
-    width: 24px;
-    height: 24px;
-    min-width: 24px;
-    min-height: 24px;
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+    min-height: 26px;
     margin-top: 1px;
     flex-shrink: 0;
+    position: relative;
+  }
+  .task-check-circle::after {
+    content: '';
+    position: absolute;
+    inset: -7px;
   }
 
   .task-info {
@@ -3428,7 +3486,7 @@ input[type="time"].form-input {
   }
 
   .task-title {
-    font-size: 14px;
+    font-size: 14.5px;
     font-weight: 700;
     color: #0a1633;
     line-height: 1.35;
@@ -3445,20 +3503,24 @@ input[type="time"].form-input {
   .task-actions {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 4px;
     flex-shrink: 0;
   }
 
   /* 34px comfortable tap targets for fingers */
   .card-action-btn {
-    width: 32px;
-    height: 32px;
-    min-width: 32px;
-    min-height: 32px;
-    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    min-height: 34px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: transform 0.15s ease, background 0.15s ease;
+  }
+  .card-action-btn:active {
+    transform: scale(0.92);
   }
 
   .task-meta-row {
@@ -3482,6 +3544,7 @@ input[type="time"].form-input {
   .badge-tag {
     font-size: 10px;
     padding: 2.5px 7px;
+    border-radius: 6px;
   }
 
   .task-alarm-pill {
@@ -3492,6 +3555,7 @@ input[type="time"].form-input {
     text-overflow: ellipsis;
     white-space: nowrap;
     flex-shrink: 0;
+    border-radius: 9999px;
   }
 
   /* Empty State on Mobile */
@@ -3542,10 +3606,10 @@ input[type="time"].form-input {
     box-sizing: border-box;
   }
 
-  /* Floating Action Button (FAB) - Sleek Circular Button on Mobile */
+  /* Floating Action Button (FAB) - Elevated Circular Button on Mobile */
   .fab-wrapper {
     position: fixed !important;
-    bottom: calc(78px + env(safe-area-inset-bottom, 8px)) !important;
+    bottom: calc(max(10px, env(safe-area-inset-bottom, 10px)) + 74px) !important;
     right: 18px !important;
     z-index: 85 !important;
   }
@@ -3581,7 +3645,7 @@ input[type="time"].form-input {
   /* Symmetrically Aligned 5-Item Mobile Bottom Navigation Dock */
   .bottom-nav {
     position: fixed !important;
-    bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+    bottom: max(8px, env(safe-area-inset-bottom, 8px)) !important;
     left: 10px !important;
     right: 10px !important;
     transform: none !important;
@@ -3589,7 +3653,7 @@ input[type="time"].form-input {
     min-width: 0 !important;
     max-width: 480px !important;
     margin: 0 auto !important;
-    height: 64px !important;
+    height: 62px !important;
     background: rgba(255, 255, 255, 0.97) !important;
     backdrop-filter: blur(24px) !important;
     -webkit-backdrop-filter: blur(24px) !important;
@@ -3599,7 +3663,7 @@ input[type="time"].form-input {
     display: flex !important;
     align-items: center !important;
     justify-content: space-around !important;
-    padding: 3px 4px !important;
+    padding: 2px 4px !important;
     z-index: 80 !important;
   }
 
@@ -3677,6 +3741,7 @@ input[type="time"].form-input {
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.25s ease;
+    touch-action: none;
   }
   .modal-overlay.open {
     opacity: 1;
@@ -3686,14 +3751,16 @@ input[type="time"].form-input {
   .modal-sheet {
     width: 100% !important;
     max-width: 100% !important;
-    max-height: 88vh !important;
     max-height: 88dvh !important;
+    max-height: 88vh !important;
     background: #ffffff !important;
     border-radius: 26px 26px 0 0 !important;
     border: 1px solid #e2e8f0 !important;
     border-bottom: none !important;
-    padding: 14px 18px calc(24px + env(safe-area-inset-bottom, 12px)) 18px !important;
+    padding: 14px 18px calc(max(18px, env(safe-area-inset-bottom, 18px)) + 12px) 18px !important;
     overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    touch-action: pan-y !important;
     -webkit-overflow-scrolling: touch !important;
     box-shadow: 0 -12px 40px rgba(10, 22, 51, 0.22) !important;
     transform: translateY(100%) !important;
@@ -3708,11 +3775,12 @@ input[type="time"].form-input {
   /* Sleek iOS Bottom Sheet Drag Handle */
   .sheet-handle {
     display: block !important;
-    width: 40px;
+    width: 44px;
     height: 4px;
     border-radius: 2px;
     background: #cbd5e1;
     margin: 0 auto 12px auto;
+    cursor: grab;
   }
 
   .modal-header {
@@ -3722,8 +3790,13 @@ input[type="time"].form-input {
     font-size: 18px;
   }
 
-  /* Form Inputs (16px to prevent iOS auto-zoom) */
-  .form-input, .form-select, .form-textarea {
+  /* Form Inputs (Strictly 16px to prevent iOS Safari auto-zoom!) */
+  .form-input,
+  .form-select,
+  .form-textarea,
+  input[type="text"],
+  input[type="date"],
+  input[type="time"] {
     font-size: 16px !important;
     height: 44px;
     border-radius: 12px;
@@ -3783,7 +3856,7 @@ input[type="time"].form-input {
     min-height: 44px;
     padding: 0 8px;
     box-sizing: border-box;
-    font-size: 13.5px !important;
+    font-size: 16px !important;
   }
 
   .preset-pills-row {
@@ -3812,13 +3885,19 @@ input[type="time"].form-input {
     padding: 0 14px;
   }
 
+  .custom-select-menu {
+    max-height: 220px;
+    overflow-y: auto;
+    z-index: 400;
+  }
+
   /* Mobile Full Touch Width Modal Action Buttons */
   .form-actions {
     display: grid;
     grid-template-columns: 1fr 1.8fr;
     gap: 10px;
     width: 100%;
-    margin-top: 12px;
+    margin-top: 14px;
   }
   .form-actions .pill-btn {
     width: 100%;
@@ -3828,6 +3907,11 @@ input[type="time"].form-input {
   }
 
   /* AI Copilot Modal Bottom Sheet */
+  .modal-overlay#aiModal {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+
   .modal-sheet.ai-modal-sheet {
     max-width: 100% !important;
     background: transparent !important;
@@ -3838,7 +3922,7 @@ input[type="time"].form-input {
 
   .ai-assistant-card.ai-popup-card {
     border-radius: 26px 26px 0 0 !important;
-    padding: 18px 16px calc(24px + env(safe-area-inset-bottom, 12px)) 16px !important;
+    padding: 18px 16px calc(max(18px, env(safe-area-inset-bottom, 18px)) + 12px) 16px !important;
     border-bottom: none !important;
     border-left: 1px solid rgba(56, 189, 248, 0.4) !important;
     border-right: 1px solid rgba(56, 189, 248, 0.4) !important;
@@ -3853,18 +3937,34 @@ input[type="time"].form-input {
     width: 100%;
   }
 
+  .ai-title-wrap {
+    min-width: 0;
+  }
+
   .ai-sparkle-badge {
     font-size: 11.5px;
   }
   .ai-tagline {
     font-size: 10px;
     color: #cbd5e1;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ai-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
   }
 
   .ai-optimize-btn {
-    padding: 5px 10px;
+    padding: 6px 10px;
     font-size: 11px;
     white-space: nowrap;
+    border-radius: 9999px;
   }
 
   .ai-input-wrap {
@@ -3880,17 +3980,25 @@ input[type="time"].form-input {
     padding: 4px 16px;
     gap: 6px;
     overflow-x: auto;
+    scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-wrap: nowrap;
+  }
+  .ai-quick-tags::-webkit-scrollbar {
+    display: none;
   }
   .ai-tag-chip {
     font-size: 11px;
     padding: 6px 12px;
     white-space: nowrap;
+    flex-shrink: 0;
   }
 
   /* Fullscreen Ringing Alarm Screen */
   .ringing-overlay {
     padding: 16px;
+    z-index: 300;
   }
 
   .ringing-card {
@@ -3898,22 +4006,22 @@ input[type="time"].form-input {
     width: 100%;
     background: #ffffff;
     border: 1px solid #e2e8f0;
-    padding: 28px 18px 22px 18px;
+    padding: 26px 18px 20px 18px;
     border-radius: 28px;
     gap: 10px;
     box-shadow: 0 20px 50px -10px rgba(15, 23, 42, 0.35);
   }
 
   .alarm-bell-ringing {
-    width: 76px;
-    height: 76px;
+    width: 74px;
+    height: 74px;
     background: #fff1f2;
     border: 2px solid #ffe4e6;
     box-shadow: 0 8px 20px rgba(244, 63, 94, 0.16);
   }
 
   .ringing-clock {
-    font-size: clamp(32px, 8.5vw, 40px);
+    font-size: clamp(30px, 8vw, 38px);
     color: #0f172a;
   }
 
@@ -3957,8 +4065,8 @@ input[type="time"].form-input {
 
   /* Audio & General Settings Modal */
   #settingsModal .modal-sheet {
-    padding: 16px 16px 20px 16px !important;
-    border-radius: 24px !important;
+    padding: 16px 16px calc(max(18px, env(safe-area-inset-bottom, 18px)) + 12px) 16px !important;
+    border-radius: 26px 26px 0 0 !important;
   }
   .settings-content {
     gap: 0;
@@ -3966,15 +4074,29 @@ input[type="time"].form-input {
   .setting-item {
     gap: 8px;
     padding: 12px 0;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .setting-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+  }
+  .setting-label-row > div {
+    min-width: 0;
+    flex: 1;
   }
   .settings-content .setting-label-row .pill-btn,
   .settings-content .pill-btn {
-    width: 100px;
-    min-width: 100px;
+    width: auto;
+    min-width: 90px;
     height: 36px;
     min-height: 36px;
+    padding: 0 12px;
     font-size: 12px;
     border-radius: 10px;
+    flex-shrink: 0;
   }
   .custom-select-trigger,
   .ringtone-select-row .form-select,
@@ -3986,8 +4108,9 @@ input[type="time"].form-input {
   #testSettingsSoundBtn {
     height: 40px !important;
     min-height: 40px !important;
-    min-width: 72px !important;
+    min-width: 68px !important;
     padding: 0 12px !important;
+    flex-shrink: 0;
   }
 
   .priority-segmented-bar {
@@ -4001,20 +4124,35 @@ input[type="time"].form-input {
   }
 }
 
+/* ==================== COMPACT PHONES (<= 480px) ==================== */
+@media (max-width: 480px) {
+  .app-header {
+    padding: calc(max(10px, env(safe-area-inset-top, 10px))) 14px 8px 14px;
+  }
+
+  .sticky-controls {
+    padding: 8px 14px 10px 14px;
+  }
+  .filter-tabs,
+  .category-scroll {
+    margin: 0 -14px;
+    padding: 2px 14px 4px 14px;
+  }
+
+  .tasks-container {
+    padding: 10px 14px 0 14px !important;
+  }
+
+  .modal-sheet {
+    padding: 12px 14px calc(max(16px, env(safe-area-inset-bottom, 16px)) + 10px) 14px !important;
+  }
+}
+
 /* ==================== ULTRA-COMPACT MOBILE SCREENS (<= 380px) ==================== */
 /* iPhone SE, mini devices, small Android smartphones */
 @media (max-width: 380px) {
-  .app-header {
-    padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 8px 12px;
-  }
-
   .headline {
     font-size: 19px;
-  }
-
-  .header-controls .pill-btn {
-    padding: 0 8px;
-    font-size: 11px;
   }
 
   .hero-stats-card {
@@ -4027,16 +4165,16 @@ input[type="time"].form-input {
   }
 
   .progress-ring-box {
-    width: 52px;
-    height: 52px;
+    width: 50px;
+    height: 50px;
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
   }
   .progress-ring-box svg.progress-ring {
-    width: 52px;
-    height: 52px;
+    width: 50px;
+    height: 50px;
     overflow: visible;
   }
   .ring-percentage {
@@ -4044,40 +4182,44 @@ input[type="time"].form-input {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 11.5px;
+    font-size: 11px;
     font-weight: 800;
     line-height: 1;
     margin: 0;
   }
 
-  .sticky-controls {
-    padding: 8px 12px;
+  .preset-pills-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 5px;
+  }
+  .preset-btn {
+    height: 34px;
+    font-size: 11px;
   }
 
-  .filter-tabs, .category-scroll {
-    margin: 0;
-    padding: 4px 0 6px 0;
-    overflow-y: visible;
+  .snooze-row {
+    gap: 4px;
   }
-
-  .tasks-container {
-    padding: 10px 12px calc(96px + env(safe-area-inset-bottom, 12px)) 12px !important;
+  .snooze-btn {
+    font-size: 10.5px;
+    height: 38px;
+    padding: 0 2px;
   }
 
   .bottom-nav {
     left: 6px !important;
     right: 6px !important;
-    height: 62px !important;
+    height: 58px !important;
     padding: 2px 2px !important;
   }
 
   .nav-item {
-    height: 52px !important;
+    height: 50px !important;
     padding: 2px 0 !important;
   }
 
   .nav-item span {
-    font-size: 9.5px !important;
+    font-size: 9px !important;
   }
 
   .nav-item svg {
@@ -4086,7 +4228,7 @@ input[type="time"].form-input {
   }
 
   .fab-wrapper {
-    bottom: calc(74px + env(safe-area-inset-bottom, 6px)) !important;
+    bottom: calc(max(8px, env(safe-area-inset-bottom, 8px)) + 70px) !important;
     right: 14px !important;
   }
 
@@ -4095,15 +4237,84 @@ input[type="time"].form-input {
     height: 48px !important;
     min-width: 48px !important;
     min-height: 48px !important;
-    padding: 0 !important;
-    border-radius: 50% !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-  }
-
-  .modal-sheet {
-    padding: 12px 14px calc(20px + env(safe-area-inset-bottom, 8px)) 14px !important;
   }
 }
 
+/* ==================== MOBILE LANDSCAPE MODE ==================== */
+/* Ensures landscape smartphones do not suffer from clipped modals or oversized headers */
+@media (max-height: 520px) and (orientation: landscape) {
+  .app-header {
+    padding: calc(max(6px, env(safe-area-inset-top, 6px))) 16px 6px 16px;
+    gap: 6px;
+  }
+
+  .hero-stats-card {
+    padding: 8px 12px;
+    border-radius: 14px;
+  }
+
+  .bottom-nav {
+    height: 50px !important;
+    bottom: max(4px, env(safe-area-inset-bottom, 4px)) !important;
+  }
+  .nav-item {
+    height: 44px !important;
+  }
+  .nav-item svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+  .nav-item span {
+    font-size: 8.5px !important;
+  }
+
+  .fab-wrapper {
+    bottom: calc(max(4px, env(safe-area-inset-bottom, 4px)) + 58px) !important;
+    right: 14px !important;
+  }
+  .fab-btn {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+
+  .modal-sheet {
+    max-height: 94dvh !important;
+    padding: 10px 16px calc(max(10px, env(safe-area-inset-bottom, 10px)) + 8px) 16px !important;
+  }
+
+  .form-actions {
+    margin-top: 8px;
+  }
+  .form-actions .pill-btn {
+    height: 38px;
+    font-size: 13px;
+  }
+
+  .ringing-card {
+    padding: 14px 16px;
+    gap: 6px;
+    max-height: 94vh;
+    overflow-y: auto;
+  }
+  .alarm-bell-ringing {
+    width: 48px;
+    height: 48px;
+  }
+  .alarm-bell-ringing svg {
+    width: 28px;
+    height: 28px;
+  }
+  .ringing-clock {
+    font-size: 24px;
+  }
+  #dismissAlarmBtn {
+    height: 40px;
+    font-size: 13px;
+  }
+  .snooze-btn {
+    height: 34px;
+    font-size: 11px;
+  }
+}

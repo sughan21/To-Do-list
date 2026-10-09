@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TaskPulse - Core Application Logic
  * Mobile-First To-Do List with Audio Alarms & Reminders
  */
@@ -1206,10 +1206,19 @@
       });
     }
 
-    // Live 12-hour preview badge for alarm time
+    // Live 12-hour preview badge for alarm time & phone clock intent update
     if (alarmTimeInput) {
-      alarmTimeInput.addEventListener('input', updateAlarmTime12Badge);
-      alarmTimeInput.addEventListener('change', updateAlarmTime12Badge);
+      alarmTimeInput.addEventListener('input', () => {
+        updateAlarmTime12Badge();
+        updatePhoneClockIntentHref();
+      });
+      alarmTimeInput.addEventListener('change', () => {
+        updateAlarmTime12Badge();
+        updatePhoneClockIntentHref();
+      });
+    }
+    if (taskTitleInput) {
+      taskTitleInput.addEventListener('input', updatePhoneClockIntentHref);
     }
 
     // Quick preset buttons (+1m, +5m, +15m, +1h)
@@ -1452,6 +1461,62 @@
         closeAiModal();
       }
     });
+
+    // Mobile touch swipe-down gesture to dismiss bottom sheet modals
+    document.querySelectorAll('.sheet-handle').forEach(handle => {
+      let startY = 0;
+      let currentY = 0;
+      let isDragging = false;
+      const sheet = handle.closest('.modal-sheet');
+      const overlay = handle.closest('.modal-overlay');
+      if (!sheet || !overlay) return;
+
+      handle.addEventListener('touchstart', (e) => {
+        if (!e.touches || e.touches.length === 0) return;
+        startY = e.touches[0].clientY;
+        currentY = startY;
+        isDragging = true;
+        sheet.style.transition = 'none';
+      }, { passive: true });
+
+      handle.addEventListener('touchmove', (e) => {
+        if (!isDragging || !e.touches || e.touches.length === 0) return;
+        currentY = e.touches[0].clientY;
+        const diffY = currentY - startY;
+        if (diffY > 0) {
+          sheet.style.transform = `translateY(${diffY}px)`;
+        }
+      }, { passive: true });
+
+      const finishDrag = () => {
+        if (!isDragging) return;
+        isDragging = false;
+        sheet.style.transition = 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)';
+        const diffY = currentY - startY;
+        if (diffY > 70) {
+          sheet.style.transform = 'translateY(100%)';
+          setTimeout(() => {
+            overlay.classList.remove('open');
+            document.body.classList.remove('modal-open');
+            sheet.style.transform = '';
+          }, 240);
+        } else {
+          sheet.style.transform = '';
+        }
+      };
+
+      handle.addEventListener('touchend', finishDrag, { passive: true });
+      handle.addEventListener('touchcancel', finishDrag, { passive: true });
+    });
+
+    // Mobile virtual keyboard scroll adjustment
+    document.querySelectorAll('.modal-sheet input, .modal-sheet textarea').forEach(inp => {
+      inp.addEventListener('focus', () => {
+        setTimeout(() => {
+          inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 280);
+      });
+    });
   }
 
   function syncFilterChips(filterName) {
@@ -1582,6 +1647,7 @@
     const syncToggle = document.getElementById('syncDeviceAlarmToggle');
     if (syncToggle) syncToggle.checked = true;
     updateAlarmTime12Badge();
+    updatePhoneClockIntentHref();
 
     taskModal.classList.add('open');
     document.body.classList.add('modal-open');
@@ -1608,9 +1674,8 @@
     alarmTimeInput.value = task.alarmTime || formatLocalTime(new Date());
     alarmRingtoneSelect.value = task.alarmRingtone || settings.defaultRingtone || 'melody';
     if (taskRingtoneDropdown) taskRingtoneDropdown.setValue(alarmRingtoneSelect.value);
-    const syncToggleEdit = document.getElementById('syncDeviceAlarmToggle');
-    if (syncToggleEdit) syncToggleEdit.checked = true;
     updateAlarmTime12Badge();
+    updatePhoneClockIntentHref();
 
     taskModal.classList.add('open');
     document.body.classList.add('modal-open');
@@ -1701,20 +1766,20 @@
     if (window.soundEngine) window.soundEngine.playTapSound();
   }
 
-  function triggerDeviceClockAlarm(taskTitle, timeStr) {
-    if (!timeStr) return;
-    const [h, m] = timeStr.split(':').map(Number);
-    const isAndroid = /Android/i.test(navigator.userAgent);
-    if (isAndroid) {
-      const intentUrl = `intent://#Intent;action=android.intent.action.SET_ALARM;S.android.intent.extra.alarm.MESSAGE=${encodeURIComponent(taskTitle)};i.android.intent.extra.alarm.HOUR=${h};i.android.intent.extra.alarm.MINUTES=${m};b.android.intent.extra.alarm.SKIP_UI=true;end`;
-      setTimeout(() => {
-        try {
-          window.location.href = intentUrl;
-        } catch (e) {
-          console.warn('Device clock intent note:', e);
-        }
-      }, 350);
+  function updatePhoneClockIntentHref() {
+    const directBtn = document.getElementById('directPhoneClockBtn');
+    if (!directBtn) return;
+    const timeVal = alarmTimeInput ? alarmTimeInput.value : '';
+    const titleVal = taskTitleInput ? taskTitleInput.value.trim() : 'Task Reminder';
+    if (!timeVal) {
+      directBtn.style.opacity = '0.5';
+      directBtn.removeAttribute('href');
+      return;
     }
+    const [h, m] = timeVal.split(':').map(Number);
+    const intentUri = `intent://#Intent;action=android.intent.action.SET_ALARM;S.android.intent.extra.alarm.MESSAGE=${encodeURIComponent(titleVal || 'Task Reminder')};i.android.intent.extra.alarm.HOUR=${h};i.android.intent.extra.alarm.MINUTES=${m};end`;
+    directBtn.setAttribute('href', intentUri);
+    directBtn.style.opacity = '1';
   }
 
   function deleteTask(id) {
