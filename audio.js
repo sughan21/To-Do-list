@@ -15,6 +15,7 @@ class SoundEngine {
     this.isMuted = false;
     this.keepAliveOsc = null;
     this.keepAliveGain = null;
+    this.silentAudio = null;
     this.wakeLock = null;
   }
 
@@ -289,22 +290,32 @@ class SoundEngine {
   enableBackgroundKeepAlive() {
     try {
       this.init();
-      if (this.keepAliveOsc) return;
 
-      const ctx = this.audioCtx;
-      this.keepAliveOsc = ctx.createOscillator();
-      this.keepAliveGain = ctx.createGain();
+      // 1. Silent HTML5 Audio element loop: mobile OS keeps audio session & CPU alive in background
+      if (!this.silentAudio) {
+        const silentWav = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==';
+        this.silentAudio = new Audio(silentWav);
+        this.silentAudio.loop = true;
+        this.silentAudio.volume = 0.01;
+      }
+      this.silentAudio.play().catch(() => {});
 
-      this.keepAliveOsc.type = 'sine';
-      this.keepAliveOsc.frequency.setValueAtTime(25, ctx.currentTime);
-      // Extremely low gain: completely silent to human ear, but active to browser audio pipeline
-      this.keepAliveGain.gain.setValueAtTime(0.00001, ctx.currentTime);
+      // 2. Web Audio sub-audible oscillator as second audio pipeline anchor
+      if (!this.keepAliveOsc && this.audioCtx) {
+        const ctx = this.audioCtx;
+        this.keepAliveOsc = ctx.createOscillator();
+        this.keepAliveGain = ctx.createGain();
 
-      this.keepAliveOsc.connect(this.keepAliveGain);
-      this.keepAliveGain.connect(ctx.destination);
-      this.keepAliveOsc.start();
+        this.keepAliveOsc.type = 'sine';
+        this.keepAliveOsc.frequency.setValueAtTime(25, ctx.currentTime);
+        this.keepAliveGain.gain.setValueAtTime(0.00001, ctx.currentTime);
 
-      // Register MediaSession so OS treats app as active audio background player
+        this.keepAliveOsc.connect(this.keepAliveGain);
+        this.keepAliveGain.connect(ctx.destination);
+        this.keepAliveOsc.start();
+      }
+
+      // 3. Register MediaSession so OS treats app as active audio background player
       if ('mediaSession' in navigator) {
         navigator.mediaSession.metadata = new MediaMetadata({
           title: 'TaskPulse Alarm Standby',
@@ -320,6 +331,9 @@ class SoundEngine {
 
   disableBackgroundKeepAlive() {
     try {
+      if (this.silentAudio) {
+        this.silentAudio.pause();
+      }
       if (this.keepAliveOsc) {
         this.keepAliveOsc.stop();
         this.keepAliveOsc.disconnect();

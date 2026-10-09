@@ -632,10 +632,45 @@
       }
     }
 
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({
-        type: 'SYNC_ALARMS',
-        alarms: activeAlarms
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(reg => {
+        const sw = reg.active || navigator.serviceWorker.controller;
+        if (sw) {
+          sw.postMessage({
+            type: 'SYNC_ALARMS',
+            alarms: activeAlarms
+          });
+        }
+
+        // Pre-schedule with TimestampTrigger if supported (Notification Triggers API)
+        if ('showTrigger' in Notification.prototype && typeof TimestampTrigger !== 'undefined' && Notification.permission === 'granted') {
+          activeAlarms.forEach(alarm => {
+            if (alarm.alarmTimestamp > Date.now()) {
+              reg.showNotification(`⏰ ALARM: ${alarm.title}`, {
+                body: alarm.desc || 'Scheduled alarm is due now!',
+                icon: './icon-192.png',
+                badge: './icon-192.png',
+                tag: `alarm-${alarm.id}`,
+                showTrigger: new TimestampTrigger(alarm.alarmTimestamp),
+                renotify: true,
+                requireInteraction: true,
+                silent: false,
+                vibrate: [800, 300, 800, 300, 1200, 400, 1200],
+                data: {
+                  taskId: alarm.id,
+                  ringtone: alarm.alarmRingtone || 'melody',
+                  url: './index.html'
+                },
+                actions: [
+                  { action: 'open', title: 'Open & Dismiss' },
+                  { action: 'snooze', title: 'Snooze 5m' }
+                ]
+              }).catch(() => {});
+            }
+          });
+        }
+      }).catch(err => {
+        console.warn('SW sync error:', err);
       });
     }
   }
@@ -1638,6 +1673,10 @@
       showToast('✓ Task & alarm created');
     }
 
+    if (alarmEnabled && ('Notification' in window) && Notification.permission === 'default') {
+      requestNotificationPermission();
+    }
+
     saveTasks();
     closeTaskModal();
     render();
@@ -1937,13 +1976,9 @@
       notifStatusText.textContent = `Permission: ${perm}`;
     }
 
-    const isDismissed = localStorage.getItem('taskpulse_audio_notice_dismissed') === 'true' || settings.audioNoticeDismissed;
-
     if (audioNotice) {
-      if (perm === 'granted' || isDismissed) {
+      if (perm === 'granted') {
         audioNotice.style.display = 'none';
-        localStorage.setItem('taskpulse_audio_notice_dismissed', 'true');
-        settings.audioNoticeDismissed = true;
       } else {
         audioNotice.style.display = 'flex';
       }
@@ -1953,6 +1988,14 @@
   function registerServiceWorker() {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').then((registration) => {
+        // Register periodic background sync if supported (Android/Chrome)
+        if ('periodicSync' in registration) {
+          registration.periodicSync.register('check-alarms', {
+            minInterval: 60 * 1000
+          }).catch(() => {});
+        }
+        return navigator.serviceWorker.ready;
+      }).then(() => {
         syncAlarmsWithServiceWorker();
       }).catch(err => {
         console.warn('SW registration note:', err);

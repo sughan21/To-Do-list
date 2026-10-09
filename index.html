@@ -328,12 +328,16 @@
             <!-- Date & Time Row -->
             <div class="form-row-2">
               <div class="form-group">
-                <label for="alarmDateInput" class="form-label">Due Date</label>
+                <div class="form-label-row">
+                  <label for="alarmDateInput" class="form-label">Due Date</label>
+                </div>
                 <input type="date" id="alarmDateInput" class="form-input">
               </div>
               <div class="form-group">
-                <div class="form-label-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-                  <label for="alarmTimeInput" class="form-label" style="margin: 0;">Alarm Time</label>
+                <div class="form-label-row">
+                  <label for="alarmTimeInput" class="form-label">
+                    <span class="desktop-only-word">Alarm </span>Time
+                  </label>
                   <span id="alarmTime12Badge" class="time-preview-badge">12:00 PM</span>
                 </div>
                 <input type="time" id="alarmTimeInput" class="form-input">
