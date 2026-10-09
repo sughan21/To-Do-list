@@ -13,6 +13,9 @@ class SoundEngine {
     this.volume = 0.85;
     this.masterGain = null;
     this.isMuted = false;
+    this.keepAliveOsc = null;
+    this.keepAliveGain = null;
+    this.wakeLock = null;
   }
 
   // Ensure AudioContext is initialized and resumed (handles browser autoplay restriction)
@@ -281,12 +284,87 @@ class SoundEngine {
     this.playToneCycle(soundType);
   }
 
+  // Background Keep-Alive Audio Session
+  // Runs an inaudible audio stream to prevent mobile browser & OS from freezing timers in background
+  enableBackgroundKeepAlive() {
+    try {
+      this.init();
+      if (this.keepAliveOsc) return;
+
+      const ctx = this.audioCtx;
+      this.keepAliveOsc = ctx.createOscillator();
+      this.keepAliveGain = ctx.createGain();
+
+      this.keepAliveOsc.type = 'sine';
+      this.keepAliveOsc.frequency.setValueAtTime(25, ctx.currentTime);
+      // Extremely low gain: completely silent to human ear, but active to browser audio pipeline
+      this.keepAliveGain.gain.setValueAtTime(0.00001, ctx.currentTime);
+
+      this.keepAliveOsc.connect(this.keepAliveGain);
+      this.keepAliveGain.connect(ctx.destination);
+      this.keepAliveOsc.start();
+
+      // Register MediaSession so OS treats app as active audio background player
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: 'TaskPulse Alarm Standby',
+          artist: 'Alarms Active in Background',
+          album: 'TaskPulse Reminder Service'
+        });
+        navigator.mediaSession.playbackState = 'playing';
+      }
+    } catch (e) {
+      console.warn('KeepAlive initialization error:', e);
+    }
+  }
+
+  disableBackgroundKeepAlive() {
+    try {
+      if (this.keepAliveOsc) {
+        this.keepAliveOsc.stop();
+        this.keepAliveOsc.disconnect();
+        this.keepAliveOsc = null;
+      }
+      if ('mediaSession' in navigator && !this.isPlayingAlarm) {
+        navigator.mediaSession.playbackState = 'none';
+      }
+    } catch (e) {
+      console.warn('KeepAlive teardown error:', e);
+    }
+  }
+
+  // Screen Wake Lock API
+  async requestWakeLock() {
+    if ('wakeLock' in navigator) {
+      try {
+        this.wakeLock = await navigator.wakeLock.request('screen');
+        this.wakeLock.addEventListener('release', () => {
+          this.wakeLock = null;
+        });
+      } catch (e) {
+        console.warn('Wake Lock error:', e);
+      }
+    }
+  }
+
+  releaseWakeLock() {
+    if (this.wakeLock) {
+      try {
+        this.wakeLock.release();
+        this.wakeLock = null;
+      } catch (e) {}
+    }
+  }
+
   // Start continuous alarm ringing loop
   startAlarm(soundType = 'melody') {
     this.init();
     if (this.isPlayingAlarm) return;
     this.isPlayingAlarm = true;
     this.activeRingtone = soundType;
+
+    // Wake screen
+    this.requestWakeLock();
 
     // Play first cycle immediately
     this.playToneCycle(soundType);
@@ -317,6 +395,7 @@ class SoundEngine {
       clearInterval(this.currentLoopTimer);
       this.currentLoopTimer = null;
     }
+    this.releaseWakeLock();
   }
 }
 

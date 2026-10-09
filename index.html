@@ -22,64 +22,60 @@
 </head>
 <body class="theme-light">
 
-  <!-- Desktop Device Frame Wrapper (Switches cleanly between Mobile Frame & Full Screen) -->
+  <!-- Main Web Application Layout -->
   <div class="app-layout" id="appLayout">
     
-    <!-- Top toolbar for Desktop Viewers -->
-    <header class="desktop-banner" id="desktopBanner">
-      <div class="banner-brand">
-        <span class="brand-dot"></span>
-        <span class="brand-text">TaskPulse <strong>Mobile Simulator</strong></span>
-      </div>
-      <div class="banner-actions">
-        <button id="toggleDeviceModeBtn" class="pill-btn secondary" title="Toggle Mobile Mockup Frame">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="3"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
-          <span id="viewModeText">Full Screen View</span>
-        </button>
-        <button id="testAlarmTriggerBtn" class="pill-btn warning" title="Trigger instant test alarm">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-          <span>Quick Alarm Test</span>
-        </button>
-      </div>
-    </header>
-
-    <!-- Mobile Device Container -->
+    <!-- Application Main Container (Normal Roomy Screen) -->
     <div class="mobile-device" id="mobileDevice">
       
-      <!-- App Screen Content -->
+      <!-- App Content Canvas -->
       <main class="phone-screen" id="phoneScreen">
 
-        <!-- Main Unified Scroll View (Allows Header, Hero Card & AI Card to smoothly scroll up) -->
+        <!-- Main Unified Content View -->
         <div class="main-scroll-view" id="mainScrollView">
 
           <!-- Audio & Notification Permission Bar -->
-          <div class="audio-notice" id="audioNotice">
+          <div class="audio-notice" id="audioNotice" style="display: none;">
             <div class="audio-notice-content">
-              <span class="notice-icon">🔔</span>
+              <span class="notice-icon" id="audioNoticeIcon">🔔</span>
               <div class="notice-text">
-                <strong>Enable Alarm Audio & Alerts</strong>
-                <span>Tap to ensure ringtones can play reliably</span>
+                <strong id="audioNoticeTitle">Enable Alarm Audio & Background Alerts</strong>
+                <span id="audioNoticeDesc">Tap to ensure alarms ring when screen is locked or app is closed</span>
               </div>
             </div>
-            <button id="enableAudioBtn" class="pill-btn primary-sm">Enable</button>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <button id="enableAudioBtn" class="pill-btn primary-sm">Enable</button>
+              <button id="dismissAudioNoticeBtn" class="close-modal-btn" style="width: 26px; height: 26px; font-size: 12px;" title="Dismiss">✕</button>
+            </div>
           </div>
 
-          <!-- Main App Header (Scrolls naturally up with the page) -->
+          <!-- Main App Header -->
           <header class="app-header">
             <div class="header-top">
-              <div class="user-greeting">
+              <div class="header-meta-row">
                 <div class="date-row">
-                  <span class="date-badge" id="currentDateBadge">Today, Oct 8</span>
+                  <span class="date-badge" id="currentDateBadge">Today</span>
+                  <span class="live-clock-badge" id="statusClock" title="Current Device Time" style="display: none;">--:-- --</span>
                   <span class="offline-badge" id="offlineIndicator" style="display: none;">⚡ Offline Ready</span>
                 </div>
-                <h1 class="headline">My Schedule <span class="wave-accent">✦</span></h1>
+                <div class="header-utility-group">
+                  <button id="testAlarmTriggerBtn" class="pill-btn warning pill-btn-sm" title="Trigger instant test alarm">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                    <span>Test Alarm</span>
+                  </button>
+                  <button id="muteToggleBtn" class="icon-btn" title="Toggle Sound Mute" aria-label="Toggle Sound">
+                    <svg id="muteIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                  </button>
+                  <button id="headerSettingsBtn" class="icon-btn" title="Settings & Presets" aria-label="Settings">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                  </button>
+                </div>
               </div>
-              <div class="header-controls">
-                <button id="muteToggleBtn" class="icon-btn" title="Toggle Sound Mute" aria-label="Toggle Sound">
-                  <svg id="muteIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
-                </button>
-                <button id="headerSettingsBtn" class="icon-btn" title="Settings & Presets" aria-label="Settings">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+              <div class="header-main-row">
+                <h1 class="headline">My Schedule <span class="wave-accent">✦</span></h1>
+                <button id="openAddModalBtn" class="pill-btn primary header-add-btn" title="Add new task">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  <span>New Task</span>
                 </button>
               </div>
             </div>
@@ -103,7 +99,7 @@
               </div>
               
               <div class="progress-ring-box">
-                <svg class="progress-ring" width="68" height="68">
+                <svg class="progress-ring" viewBox="0 0 68 68" width="68" height="68">
                   <circle class="ring-bg" stroke="rgba(255,255,255,0.08)" stroke-width="6" fill="transparent" r="28" cx="34" cy="34"/>
                   <circle class="ring-val" id="progressRingVal" stroke="url(#progressGrad)" stroke-width="6" stroke-linecap="round" fill="transparent" r="28" cx="34" cy="34"/>
                   <defs>
@@ -180,8 +176,8 @@
 
         <!-- Floating Add Task Button (Mobile FAB) -->
         <div class="fab-wrapper">
-          <button class="fab-btn" id="openAddModalBtn" aria-label="Add Task with Alarm">
-            <svg class="fab-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <button class="fab-btn" id="fabAddBtn" aria-label="Add Task with Alarm">
+            <svg class="fab-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
             <span class="fab-text">New Task</span>
           </button>
         </div>
@@ -215,9 +211,6 @@
           </button>
         </nav>
 
-        <!-- Home Bar Indicator for Mobile Gestures -->
-        <div class="phone-home-indicator"></div>
-
       </main>
     </div>
   </div>
@@ -247,11 +240,38 @@
           <textarea id="taskDescInput" class="form-textarea" placeholder="Add helpful details or instructions..."></textarea>
         </div>
 
-        <!-- Category & Priority Row -->
-        <div class="form-row-2">
-          <div class="form-group">
-            <label for="taskCategorySelect" class="form-label">Category</label>
-            <select id="taskCategorySelect" class="form-select">
+        <!-- Category Field: Custom Floating Dropdown -->
+        <div class="form-group category-group">
+          <label class="form-label">Category</label>
+          <div class="custom-select-wrap" id="taskCategoryWrap">
+            <button type="button" class="custom-select-trigger" id="taskCategoryTrigger" aria-haspopup="listbox" aria-expanded="false">
+              <span class="custom-select-val">💧 Health</span>
+              <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="custom-select-menu" id="taskCategoryMenu" role="listbox">
+              <div class="custom-select-option" data-value="work" role="option" aria-selected="false">
+                <span class="opt-label">💼 Work</span>
+                <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="custom-select-option" data-value="personal" role="option" aria-selected="false">
+                <span class="opt-label">🏡 Personal</span>
+                <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="custom-select-option active" data-value="health" role="option" aria-selected="true">
+                <span class="opt-label">💧 Health</span>
+                <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="custom-select-option" data-value="study" role="option" aria-selected="false">
+                <span class="opt-label">📚 Study</span>
+                <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="custom-select-option" data-value="urgent" role="option" aria-selected="false">
+                <span class="opt-label">⚡ Urgent</span>
+                <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+            </div>
+            <!-- Hidden native select kept 100% backward compatible for form submit and JavaScript -->
+            <select id="taskCategorySelect" style="display: none;" aria-hidden="true">
               <option value="work">💼 Work</option>
               <option value="personal">🏡 Personal</option>
               <option value="health" selected>💧 Health</option>
@@ -259,15 +279,31 @@
               <option value="urgent">⚡ Urgent</option>
             </select>
           </div>
+        </div>
 
-          <div class="form-group">
-            <label for="taskPrioritySelect" class="form-label">Priority</label>
-            <select id="taskPrioritySelect" class="form-select">
-              <option value="low">🟢 Low</option>
-              <option value="medium" selected>🟡 Medium</option>
-              <option value="high">🔴 High</option>
-            </select>
+        <!-- Priority Field: Interactive Segmented Pill Bar -->
+        <div class="form-group priority-picker-group">
+          <label class="form-label">Priority Level</label>
+          <div class="priority-segmented-bar" id="prioritySegmentedBar" role="radiogroup" aria-label="Task Priority">
+            <button type="button" class="prio-segment-pill" data-priority="low" role="radio" aria-checked="false">
+              <span class="prio-dot prio-dot-low"></span>
+              <span class="prio-label">Low</span>
+            </button>
+            <button type="button" class="prio-segment-pill active" data-priority="medium" role="radio" aria-checked="true">
+              <span class="prio-dot prio-dot-med"></span>
+              <span class="prio-label">Medium</span>
+            </button>
+            <button type="button" class="prio-segment-pill" data-priority="high" role="radio" aria-checked="false">
+              <span class="prio-dot prio-dot-high"></span>
+              <span class="prio-label">High</span>
+            </button>
           </div>
+          <!-- Hidden native select kept synchronized for full backward compatibility -->
+          <select id="taskPrioritySelect" style="display: none;" aria-hidden="true">
+            <option value="low">🟢 Low</option>
+            <option value="medium" selected>🟡 Medium</option>
+            <option value="high">🔴 High</option>
+          </select>
         </div>
 
         <!-- Alarm Section Box -->
@@ -277,9 +313,9 @@
               <div class="alarm-icon-badge">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
               </div>
-              <div>
+              <div class="alarm-toggle-text">
                 <strong>Set Audio Alarm</strong>
-                <p>Rings alarm tone & sends notification when due</p>
+                <p>Rings tone & alerts when due</p>
               </div>
             </div>
             <label class="switch-ui">
@@ -296,7 +332,10 @@
                 <input type="date" id="alarmDateInput" class="form-input">
               </div>
               <div class="form-group">
-                <label for="alarmTimeInput" class="form-label">Alarm Time</label>
+                <div class="form-label-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                  <label for="alarmTimeInput" class="form-label" style="margin: 0;">Alarm Time</label>
+                  <span id="alarmTime12Badge" class="time-preview-badge">12:00 PM</span>
+                </div>
                 <input type="time" id="alarmTimeInput" class="form-input">
               </div>
             </div>
@@ -312,21 +351,48 @@
               </div>
             </div>
 
-            <!-- Ringtone Selector & Preview Row -->
-            <div class="ringtone-select-row">
-              <div class="form-group" style="flex: 1;">
-                <label for="alarmRingtoneSelect" class="form-label">Alarm Ringtone</label>
-                <select id="alarmRingtoneSelect" class="form-select">
+            <!-- Full-Width Ringtone Selector & Test Audio -->
+            <div class="form-group ringtone-group">
+              <div class="ringtone-header-row">
+                <label class="form-label" style="margin: 0;">Alarm Ringtone</label>
+                <button type="button" id="previewSoundBtn" class="ringtone-preview-badge-btn" title="Preview Ringtone">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                  <span>Test Audio</span>
+                </button>
+              </div>
+
+              <!-- Custom Floating Dropdown Menu -->
+              <div class="custom-select-wrap" id="taskRingtoneWrap">
+                <button type="button" class="custom-select-trigger" id="taskRingtoneTrigger" aria-haspopup="listbox" aria-expanded="false">
+                  <span class="custom-select-val">🎵 Digital Melody</span>
+                  <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div class="custom-select-menu" id="taskRingtoneMenu" role="listbox">
+                  <div class="custom-select-option active" data-value="melody" role="option" aria-selected="true">
+                    <span class="opt-label">🎵 Digital Melody</span>
+                    <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  </div>
+                  <div class="custom-select-option" data-value="chime" role="option" aria-selected="false">
+                    <span class="opt-label">🔔 Gentle Chime</span>
+                    <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  </div>
+                  <div class="custom-select-option" data-value="radar" role="option" aria-selected="false">
+                    <span class="opt-label">🚨 Radar Siren</span>
+                    <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  </div>
+                  <div class="custom-select-option" data-value="arcade" role="option" aria-selected="false">
+                    <span class="opt-label">👾 Retro Arcade</span>
+                    <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  </div>
+                </div>
+                <!-- Hidden native select for 100% JS compatibility -->
+                <select id="alarmRingtoneSelect" style="display: none;" aria-hidden="true">
                   <option value="melody">🎵 Digital Melody</option>
                   <option value="chime">🔔 Gentle Chime</option>
                   <option value="radar">🚨 Radar Siren</option>
                   <option value="arcade">👾 Retro Arcade</option>
                 </select>
               </div>
-              <button type="button" id="previewSoundBtn" class="pill-btn secondary preview-btn" title="Preview Ringtone">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                <span>Test</span>
-              </button>
             </div>
           </div>
         </div>
@@ -414,12 +480,38 @@
         <div class="setting-item">
           <label class="form-label">Default Alarm Ringtone</label>
           <div class="ringtone-select-row">
-            <select id="defaultRingtoneSelect" class="form-select" style="flex: 1;">
-              <option value="melody">🎵 Digital Melody</option>
-              <option value="chime">🔔 Gentle Chime</option>
-              <option value="radar">🚨 Radar Siren</option>
-              <option value="arcade">👾 Retro Arcade</option>
-            </select>
+            <!-- Custom Floating Dropdown Menu -->
+            <div class="custom-select-wrap" id="settingsRingtoneWrap" style="flex: 1;">
+              <button type="button" class="custom-select-trigger" id="settingsRingtoneTrigger" aria-haspopup="listbox" aria-expanded="false">
+                <span class="custom-select-val">🎵 Digital Melody</span>
+                <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </button>
+              <div class="custom-select-menu" id="settingsRingtoneMenu" role="listbox">
+                <div class="custom-select-option active" data-value="melody" role="option" aria-selected="true">
+                  <span class="opt-label">🎵 Digital Melody</span>
+                  <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>
+                <div class="custom-select-option" data-value="chime" role="option" aria-selected="false">
+                  <span class="opt-label">🔔 Gentle Chime</span>
+                  <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>
+                <div class="custom-select-option" data-value="radar" role="option" aria-selected="false">
+                  <span class="opt-label">🚨 Radar Siren</span>
+                  <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>
+                <div class="custom-select-option" data-value="arcade" role="option" aria-selected="false">
+                  <span class="opt-label">👾 Retro Arcade</span>
+                  <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>
+              </div>
+              <!-- Hidden native select for 100% JS compatibility -->
+              <select id="defaultRingtoneSelect" style="display: none;" aria-hidden="true">
+                <option value="melody">🎵 Digital Melody</option>
+                <option value="chime">🔔 Gentle Chime</option>
+                <option value="radar">🚨 Radar Siren</option>
+                <option value="arcade">👾 Retro Arcade</option>
+              </select>
+            </div>
             <button id="testSettingsSoundBtn" class="pill-btn secondary preview-btn">Test</button>
           </div>
         </div>

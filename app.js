@@ -20,7 +20,8 @@
   let settings = {
     volume: 0.85,
     defaultRingtone: 'melody',
-    audioUnlocked: false
+    audioUnlocked: false,
+    audioNoticeDismissed: false
   };
 
   // DOM Elements
@@ -40,6 +41,7 @@
   const categoryScrollEl = document.getElementById('categoryScroll');
   const audioNotice = document.getElementById('audioNotice');
   const enableAudioBtn = document.getElementById('enableAudioBtn');
+  const dismissAudioNoticeBtn = document.getElementById('dismissAudioNoticeBtn');
   const muteToggleBtn = document.getElementById('muteToggleBtn');
   const muteIcon = document.getElementById('muteIcon');
   const toggleDeviceModeBtn = document.getElementById('toggleDeviceModeBtn');
@@ -64,6 +66,7 @@
   const closeTaskModalBtn = document.getElementById('closeTaskModalBtn');
   const cancelTaskBtn = document.getElementById('cancelTaskBtn');
   const openAddModalBtn = document.getElementById('openAddModalBtn');
+  const fabAddBtn = document.getElementById('fabAddBtn');
   const emptyAddBtn = document.getElementById('emptyAddBtn');
 
   // Ringing Alarm Elements
@@ -119,11 +122,15 @@
     loadSettings();
     loadTasks();
     setupClockAndTimers();
+    initAlarmWorker();
     setupEventListeners();
     setupConfettiResize();
     registerServiceWorker();
     setupNetworkStatus();
+    handleLaunchParams();
     render();
+    syncAlarmsWithServiceWorker();
+    updateNotificationUIStatus();
   }
 
   // Load tasks: ensures new users ALWAYS start with a 100% fresh, empty private page
@@ -157,6 +164,7 @@
   function saveTasks() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      syncAlarmsWithServiceWorker();
     } catch (e) {
       console.error('Error saving tasks:', e);
     }
@@ -356,9 +364,15 @@
 
     tasks.forEach(task => {
       if (task.alarmEnabled && !task.completed && !task.alarmFired && task.alarmTimestamp) {
-        // Trigger if due (within current or past minute)
-        if (nowMs >= task.alarmTimestamp) {
-          triggerAlarm(task);
+        const diffMs = nowMs - task.alarmTimestamp;
+        // Trigger if due right now (within current minute or up to 2 minutes past)
+        if (diffMs >= 0) {
+          if (diffMs < 120000) {
+            triggerAlarm(task);
+          } else {
+            // Already expired in past (> 2 minutes ago)
+            task.alarmFired = true;
+          }
         }
       }
     });
@@ -395,16 +409,46 @@
   }
 
   function triggerNotification(task) {
+    const title = `⏰ ALARM: ${task.title}`;
+    const options = {
+      body: task.desc || 'Your scheduled reminder is due right now!',
+      icon: './icon-192.png',
+      badge: './icon-192.png',
+      tag: `alarm-${task.id}`,
+      renotify: true,
+      requireInteraction: true,
+      silent: false,
+      vibrate: [500, 200, 500, 200, 800, 300, 800],
+      data: {
+        taskId: task.id,
+        ringtone: task.alarmRingtone || 'melody',
+        url: './index.html'
+      },
+      actions: [
+        { action: 'open', title: 'Open & Dismiss' },
+        { action: 'snooze', title: 'Snooze 5m' }
+      ]
+    };
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(reg => {
+        reg.showNotification(title, options).catch(() => {
+          fallbackNotification(title, options);
+        });
+      }).catch(() => {
+        fallbackNotification(title, options);
+      });
+    } else {
+      fallbackNotification(title, options);
+    }
+  }
+
+  function fallbackNotification(title, options) {
     if ('Notification' in window && Notification.permission === 'granted') {
       try {
-        new Notification(`⏰ TaskPulse Alarm: ${task.title}`, {
-          body: task.desc || 'Your scheduled task reminder is due!',
-          icon: 'icon-192.png',
-          tag: `task-${task.id}`,
-          requireInteraction: true
-        });
+        new Notification(title, options);
       } catch (e) {
-        console.warn('Notification error:', e);
+        console.warn('Fallback notification error:', e);
       }
     }
   }
@@ -490,6 +534,33 @@
     activeRingingTask = null;
   }
 
+  function snoozeTaskById(taskId, minutes = 5) {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    if (window.soundEngine) {
+      window.soundEngine.stopAlarm();
+    }
+    if ('vibrate' in navigator) {
+      navigator.vibrate(0);
+    }
+    if (ringingOverlay) {
+      ringingOverlay.style.display = 'none';
+    }
+
+    const newTime = new Date(Date.now() + minutes * 60 * 1000);
+    task.alarmDate = formatLocalDate(newTime);
+    task.alarmTime = formatLocalTime(newTime);
+    task.alarmTimestamp = newTime.getTime();
+    task.alarmFired = false;
+    task.alarmEnabled = true;
+
+    saveTasks();
+    render();
+    showToast(`💤 Snoozed "${task.title}" for ${minutes}m (rings at ${formatTimeDisplay(newTime)})`);
+    activeRingingTask = null;
+  }
+
   // Update Hero Stats and Countdown
   function updateHeroAlarmBanner(now) {
     const upcomingAlarms = tasks
@@ -526,6 +597,81 @@
       nextAlarmText.innerHTML = '<span class="no-alarm-label">No upcoming alarms scheduled</span>';
     }
   }
+
+  // ==================== BACKGROUND ALARM WORKER & SYNC ====================
+
+  let alarmWorker = null;
+
+  function initAlarmWorker() {
+    try {
+      if (window.Worker) {
+        alarmWorker = new Worker('alarm-worker.js');
+        alarmWorker.onmessage = function (e) {
+          if (e.data && e.data.type === 'TICK') {
+            checkAlarms(new Date(e.data.timestamp));
+          }
+        };
+        alarmWorker.postMessage({ command: 'START' });
+      }
+    } catch (e) {
+      console.warn('Worker initialization fallback:', e);
+    }
+  }
+
+  function syncAlarmsWithServiceWorker() {
+    const activeAlarms = tasks.filter(t => t.alarmEnabled && !t.completed && !t.alarmFired && t.alarmTimestamp);
+
+    // Keep background audio stream alive whenever there are upcoming alarms
+    if (activeAlarms.length > 0) {
+      if (window.soundEngine && settings.audioUnlocked) {
+        window.soundEngine.enableBackgroundKeepAlive();
+      }
+    } else {
+      if (window.soundEngine) {
+        window.soundEngine.disableBackgroundKeepAlive();
+      }
+    }
+
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'SYNC_ALARMS',
+        alarms: activeAlarms
+      });
+    }
+  }
+
+  function handleLaunchParams() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const alarmId = params.get('alarmId');
+      const action = params.get('action');
+
+      if (alarmId) {
+        const targetTask = tasks.find(t => t.id === alarmId);
+        if (targetTask) {
+          if (action === 'snooze') {
+            snoozeTaskById(alarmId, 5);
+          } else {
+            triggerAlarm(targetTask);
+          }
+        }
+        if (window.history && window.history.replaceState) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      }
+    } catch (e) {
+      console.warn('Launch params error:', e);
+    }
+  }
+
+  // Monitor visibility changes so alarms catch up immediately upon unlocking/foregrounding
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      checkAlarms(new Date());
+    } else {
+      syncAlarmsWithServiceWorker();
+    }
+  });
 
   // ==================== RENDERING ====================
 
@@ -660,7 +806,7 @@
     tasksListEl.innerHTML = filtered.map(task => {
       const isDone = task.completed;
       const isAlarmOn = task.alarmEnabled;
-      const isRinging = task.alarmFired && !isDone;
+      const isRinging = activeRingingTask && activeRingingTask.id === task.id;
 
       // Alarm formatted text (12-hour AM/PM)
       let alarmDisplay = '';
@@ -796,8 +942,20 @@
       enableAudioBtn.addEventListener('click', () => {
         unlockAudioOnFirstClick();
         requestNotificationPermission();
+        localStorage.setItem('taskpulse_audio_notice_dismissed', 'true');
+        settings.audioNoticeDismissed = true;
+        saveSettings();
         if (audioNotice) audioNotice.style.display = 'none';
         showToast('🔔 Audio & Alarms Ready!');
+      });
+    }
+
+    if (dismissAudioNoticeBtn) {
+      dismissAudioNoticeBtn.addEventListener('click', () => {
+        localStorage.setItem('taskpulse_audio_notice_dismissed', 'true');
+        settings.audioNoticeDismissed = true;
+        saveSettings();
+        if (audioNotice) audioNotice.style.display = 'none';
       });
     }
 
@@ -826,19 +984,33 @@
       });
     }
 
-    // Quick Alarm Test Button
+    // Quick Alarm Test Button (tests background ringing & notification)
     if (testAlarmTriggerBtn) {
       testAlarmTriggerBtn.addEventListener('click', () => {
         unlockAudioOnFirstClick();
+        requestNotificationPermission();
+
+        const testSeconds = 4;
+        const targetTime = new Date(Date.now() + testSeconds * 1000);
         const demoTask = {
-          id: 'quick-test-' + Date.now(),
-          title: 'Immediate Alarm Test 🚨',
-          desc: 'Your scheduled mobile alarm is ringing successfully!',
+          id: 'test-' + Date.now(),
+          title: 'Quick Alarm Test 🚨',
+          desc: 'Background mobile alarm is ringing on time!',
           category: 'urgent',
           priority: 'high',
-          alarmRingtone: settings.defaultRingtone || 'melody'
+          alarmRingtone: settings.defaultRingtone || 'melody',
+          alarmEnabled: true,
+          alarmDate: formatLocalDate(targetTime),
+          alarmTime: formatLocalTime(targetTime),
+          alarmTimestamp: targetTime.getTime(),
+          alarmFired: false
         };
-        triggerAlarm(demoTask);
+
+        tasks.unshift(demoTask);
+        saveTasks();
+        render();
+
+        showToast(`⏰ Test alarm will ring in ${testSeconds}s! Switch tabs or lock screen to test.`);
       });
     }
 
@@ -957,6 +1129,12 @@
         openCreateModal();
       });
     }
+    if (fabAddBtn) {
+      fabAddBtn.addEventListener('click', () => {
+        unlockAudioOnFirstClick();
+        openCreateModal();
+      });
+    }
     if (emptyAddBtn) {
       emptyAddBtn.addEventListener('click', () => {
         unlockAudioOnFirstClick();
@@ -1044,6 +1222,14 @@
       });
     });
 
+    // Priority Segmented Pills
+    document.querySelectorAll('.prio-segment-pill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const prio = btn.getAttribute('data-priority');
+        updatePrioritySegmentUI(prio);
+      });
+    });
+
     // Settings Modal
     if (headerSettingsBtn) {
       headerSettingsBtn.addEventListener('click', openSettingsModal);
@@ -1071,7 +1257,15 @@
       });
     }
 
-    // Default Ringtone Select
+    // Custom Floating Dropdowns
+    taskCategoryDropdown = setupCustomDropdown('taskCategoryWrap', 'taskCategoryTrigger', 'taskCategoryMenu', 'taskCategorySelect');
+    taskRingtoneDropdown = setupCustomDropdown('taskRingtoneWrap', 'taskRingtoneTrigger', 'taskRingtoneMenu', 'alarmRingtoneSelect');
+    settingsRingtoneDropdown = setupCustomDropdown('settingsRingtoneWrap', 'settingsRingtoneTrigger', 'settingsRingtoneMenu', 'defaultRingtoneSelect', (val) => {
+      settings.defaultRingtone = val;
+      saveSettings();
+    });
+
+    // Default Ringtone Select (change listener fallback)
     if (defaultRingtoneSelect) {
       defaultRingtoneSelect.addEventListener('change', (e) => {
         settings.defaultRingtone = e.target.value;
@@ -1238,6 +1432,88 @@
     }
   }
 
+  // Priority Segmented Pills helper
+  function updatePrioritySegmentUI(priority) {
+    const val = priority || (taskPrioritySelect ? taskPrioritySelect.value : 'medium') || 'medium';
+    if (taskPrioritySelect) taskPrioritySelect.value = val;
+    document.querySelectorAll('.prio-segment-pill').forEach(btn => {
+      const isMatch = btn.getAttribute('data-priority') === val;
+      btn.classList.toggle('active', isMatch);
+      btn.setAttribute('aria-checked', isMatch ? 'true' : 'false');
+    });
+  }
+
+  // Custom Floating Dropdown helper
+  const ringtoneLabels = {
+    melody: '🎵 Digital Melody',
+    chime: '🔔 Gentle Chime',
+    radar: '🚨 Radar Siren',
+    arcade: '👾 Retro Arcade'
+  };
+
+  let taskCategoryDropdown = null;
+  let taskRingtoneDropdown = null;
+  let settingsRingtoneDropdown = null;
+
+  function setupCustomDropdown(wrapId, triggerId, menuId, selectId, onChangeCallback) {
+    const wrap = document.getElementById(wrapId);
+    const trigger = document.getElementById(triggerId);
+    const menu = document.getElementById(menuId);
+    const select = document.getElementById(selectId);
+    if (!wrap || !trigger || !menu || !select) return null;
+
+    function updateDisplay(val) {
+      select.value = val;
+      const optEl = menu.querySelector(`.custom-select-option[data-value="${val}"]`);
+      const labelText = optEl ? (optEl.querySelector('.opt-label')?.textContent || optEl.textContent).trim() : (ringtoneLabels[val] || val);
+      const valSpan = trigger.querySelector('.custom-select-val');
+      if (valSpan && labelText) valSpan.textContent = labelText;
+
+      menu.querySelectorAll('.custom-select-option').forEach(opt => {
+        const isSelected = opt.getAttribute('data-value') === val;
+        opt.classList.toggle('active', isSelected);
+        opt.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+      });
+      if (onChangeCallback) onChangeCallback(val);
+    }
+
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = wrap.classList.contains('open');
+      document.querySelectorAll('.custom-select-wrap.open').forEach(w => {
+        if (w !== wrap) {
+          w.classList.remove('open');
+          const t = w.querySelector('.custom-select-trigger');
+          if (t) t.setAttribute('aria-expanded', 'false');
+        }
+      });
+      wrap.classList.toggle('open', !isOpen);
+      trigger.setAttribute('aria-expanded', (!isOpen).toString());
+    });
+
+    menu.querySelectorAll('.custom-select-option').forEach(opt => {
+      opt.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const val = opt.getAttribute('data-value');
+        updateDisplay(val);
+        wrap.classList.remove('open');
+        trigger.setAttribute('aria-expanded', 'false');
+        select.dispatchEvent(new Event('change'));
+      });
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!wrap.contains(e.target)) {
+        wrap.classList.remove('open');
+        trigger.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    return {
+      setValue: updateDisplay
+    };
+  }
+
   // ==================== MODAL OPERATIONS ====================
 
   function openCreateModal(prefill = null) {
@@ -1246,7 +1522,9 @@
     taskTitleInput.value = (prefill && prefill.title) ? prefill.title : '';
     taskDescInput.value = (prefill && prefill.desc) ? prefill.desc : '';
     taskCategorySelect.value = (prefill && prefill.cat) ? prefill.cat : 'health';
+    if (taskCategoryDropdown) taskCategoryDropdown.setValue(taskCategorySelect.value);
     taskPrioritySelect.value = (prefill && prefill.priority) ? prefill.priority : 'medium';
+    updatePrioritySegmentUI(taskPrioritySelect.value);
 
     alarmEnabledToggle.checked = true;
     if (alarmDetailsPanel) alarmDetailsPanel.style.display = 'flex';
@@ -1254,12 +1532,15 @@
     // Preset alarm time (defaults to 5 minutes or prefilled minutes)
     const minutesToAdd = (prefill && prefill.min) ? parseInt(prefill.min, 10) : 5;
     const targetDate = new Date(Date.now() + minutesToAdd * 60 * 1000);
+    alarmDateInput.min = formatLocalDate(new Date());
     alarmDateInput.value = formatLocalDate(targetDate);
     alarmTimeInput.value = formatLocalTime(targetDate);
     alarmRingtoneSelect.value = settings.defaultRingtone || 'melody';
+    if (taskRingtoneDropdown) taskRingtoneDropdown.setValue(alarmRingtoneSelect.value);
     updateAlarmTime12Badge();
 
     taskModal.classList.add('open');
+    document.body.classList.add('modal-open');
     setTimeout(() => taskTitleInput.focus(), 150);
   }
 
@@ -1269,24 +1550,30 @@
     taskTitleInput.value = task.title;
     taskDescInput.value = task.desc || '';
     taskCategorySelect.value = task.category || 'work';
+    if (taskCategoryDropdown) taskCategoryDropdown.setValue(taskCategorySelect.value);
     taskPrioritySelect.value = task.priority || 'medium';
+    updatePrioritySegmentUI(taskPrioritySelect.value);
 
     alarmEnabledToggle.checked = !!task.alarmEnabled;
     if (alarmDetailsPanel) {
       alarmDetailsPanel.style.display = task.alarmEnabled ? 'flex' : 'none';
     }
 
+    alarmDateInput.min = formatLocalDate(new Date());
     alarmDateInput.value = task.alarmDate || formatLocalDate(new Date());
     alarmTimeInput.value = task.alarmTime || formatLocalTime(new Date());
     alarmRingtoneSelect.value = task.alarmRingtone || settings.defaultRingtone || 'melody';
+    if (taskRingtoneDropdown) taskRingtoneDropdown.setValue(alarmRingtoneSelect.value);
     updateAlarmTime12Badge();
 
     taskModal.classList.add('open');
+    document.body.classList.add('modal-open');
     setTimeout(() => taskTitleInput.focus(), 150);
   }
 
   function closeTaskModal() {
     taskModal.classList.remove('open');
+    document.body.classList.remove('modal-open');
   }
 
   function saveTaskFromForm() {
@@ -1308,6 +1595,10 @@
       const [hour, min] = alarmTime.split(':').map(Number);
       const d = new Date(year, month - 1, day, hour, min, 0);
       alarmTimestamp = d.getTime();
+
+      if (alarmTimestamp <= Date.now()) {
+        showToast('⚠️ Note: Selected alarm time has already passed today');
+      }
     }
 
     if (id) {
@@ -1366,6 +1657,7 @@
     if (volumeSlider) volumeSlider.value = Math.round(settings.volume * 100);
     if (volumePercentText) volumePercentText.textContent = `${Math.round(settings.volume * 100)}%`;
     if (defaultRingtoneSelect) defaultRingtoneSelect.value = settings.defaultRingtone || 'melody';
+    if (settingsRingtoneDropdown) settingsRingtoneDropdown.setValue(defaultRingtoneSelect.value);
 
     if (notifStatusText) {
       const perm = ('Notification' in window) ? Notification.permission : 'unsupported';
@@ -1373,10 +1665,12 @@
     }
 
     settingsModal.classList.add('open');
+    document.body.classList.add('modal-open');
   }
 
   function closeSettingsModal() {
     settingsModal.classList.remove('open');
+    document.body.classList.remove('modal-open');
   }
 
   // ==================== AI COPILOT & SCHEDULING ENGINE ====================
@@ -1490,6 +1784,7 @@
   function openAiModal(initialPrompt = '') {
     if (aiModal) {
       aiModal.classList.add('open');
+      document.body.classList.add('modal-open');
       if (aiPromptInput) {
         aiPromptInput.value = initialPrompt;
         setTimeout(() => aiPromptInput.focus(), 180);
@@ -1501,6 +1796,7 @@
   function closeAiModal() {
     if (aiModal) {
       aiModal.classList.remove('open');
+      document.body.classList.remove('modal-open');
       // Restore active tab indicator in bottom navigation
       document.querySelectorAll('.bottom-nav .nav-item').forEach(b => {
         const tab = b.dataset.tab;
@@ -1600,31 +1896,85 @@
     if (window.soundEngine) {
       window.soundEngine.init();
       settings.audioUnlocked = true;
+      syncAlarmsWithServiceWorker();
     }
-    if (audioNotice) {
-      audioNotice.style.display = 'none';
-    }
+    updateNotificationUIStatus();
   }
 
   function requestNotificationPermission() {
     if (!('Notification' in window)) {
-      alert('This browser does not support desktop or mobile notifications. Sound alarms will still play.');
+      alert('This browser does not support notifications. Sound alarms will still play.');
       return;
     }
     Notification.requestPermission().then(permission => {
-      if (notifStatusText) notifStatusText.textContent = `Permission: ${permission}`;
+      localStorage.setItem('taskpulse_audio_notice_dismissed', 'true');
+      settings.audioNoticeDismissed = true;
+      saveSettings();
+      updateNotificationUIStatus(permission);
       if (permission === 'granted') {
-        showToast('🔔 Notifications enabled!');
+        showToast('🔔 Background alarms enabled! You will be alerted on time.');
+        syncAlarmsWithServiceWorker();
+        // Fire confirmation notification via service worker
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.ready.then(reg => {
+            reg.showNotification('TaskPulse Alarms Active ⏰', {
+              body: 'Background notifications ready. Your scheduled alarms will ring on time!',
+              icon: './icon-192.png',
+              badge: './icon-192.png',
+              tag: 'welcome-notification'
+            });
+          });
+        }
       } else {
-        showToast('Notifications declined. Alarms will play sound only.');
+        showToast('Notifications declined. Alarms will play sound when app is open.');
       }
     });
   }
 
+  function updateNotificationUIStatus(permission = null) {
+    const perm = permission || (('Notification' in window) ? Notification.permission : 'default');
+    if (notifStatusText) {
+      notifStatusText.textContent = `Permission: ${perm}`;
+    }
+
+    const isDismissed = localStorage.getItem('taskpulse_audio_notice_dismissed') === 'true' || settings.audioNoticeDismissed;
+
+    if (audioNotice) {
+      if (perm === 'granted' || isDismissed) {
+        audioNotice.style.display = 'none';
+        localStorage.setItem('taskpulse_audio_notice_dismissed', 'true');
+        settings.audioNoticeDismissed = true;
+      } else {
+        audioNotice.style.display = 'flex';
+      }
+    }
+  }
+
   function registerServiceWorker() {
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js').catch(err => {
-        console.warn('SW registration failed (expected in local file:// URLs):', err);
+      navigator.serviceWorker.register('./sw.js').then((registration) => {
+        syncAlarmsWithServiceWorker();
+      }).catch(err => {
+        console.warn('SW registration note:', err);
+      });
+
+      // Listen for background alarm messages from service worker
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        const data = event.data;
+        if (!data) return;
+
+        if (data.type === 'SW_ALARM_FIRED') {
+          const task = tasks.find(t => t.id === data.taskId);
+          if (task) {
+            triggerAlarm(task);
+          }
+        } else if (data.type === 'NOTIFICATION_ACTION') {
+          if (data.action === 'snooze') {
+            snoozeTaskById(data.taskId, 5);
+          } else {
+            dismissActiveAlarm(true);
+          }
+        }
       });
     }
   }
@@ -1659,26 +2009,37 @@
     toast.textContent = message;
     toast.style.cssText = `
       position: fixed;
-      bottom: 80px;
+      bottom: calc(84px + env(safe-area-inset-bottom, 8px));
       left: 50%;
-      transform: translateX(-50%) translateY(20px);
-      background: rgba(8, 18, 42, 0.96);
-      border: 1px solid rgba(56, 189, 248, 0.45);
+      transform: translateX(-50%) translateY(16px);
+      background: rgba(8, 18, 42, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(56, 189, 248, 0.4);
       color: #ffffff;
-      padding: 10px 18px;
-      border-radius: 9999px;
+      padding: 11px 20px;
+      border-radius: 22px;
       font-size: 13px;
       font-weight: 600;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7), 0 0 15px rgba(37, 99, 235, 0.35);
+      line-height: 1.45;
+      text-align: center;
+      width: max-content;
+      max-width: min(340px, calc(100vw - 36px));
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 14px rgba(37, 99, 235, 0.25);
       z-index: 1000;
       opacity: 0;
-      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
       pointer-events: none;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
     `;
     document.body.appendChild(toast);
 
     requestAnimationFrame(() => {
-      toast.style.opacity = '1';
+      toast.style.opacity = '0.5';
       toast.style.transform = 'translateX(-50%) translateY(0)';
     });
 
